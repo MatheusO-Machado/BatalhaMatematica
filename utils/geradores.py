@@ -3,6 +3,28 @@ import random
 class GeradorMatematico:
     @staticmethod
     def gerar(modo, dificuldade="Médio"):
+
+        """
+        =====================================================================
+        APLICAÇÃO MATEMÁTICA: ANÁLISE COMBINATÓRIA E ESTRUTURAS DISCRETAS
+        =====================================================================
+        Este método atua como um gerador de instâncias de problemas matemáticos.
+        
+        1. MODELAGEM: Cada modo de jogo (Tabuada, Frações, etc.) é tratado como um
+           subconjunto de operações distintas dentro do domínio da matemática.
+           
+        2. ANÁLISE COMBINATÓRIA: Para evitar a trivialidade (repetição direta),
+           utilizamos a permutação de elementos aleatórios dentro de ranges 
+           específicos definidos pela variável 'dificuldade'. Isso garante que 
+           o espaço amostral de possíveis questões seja vasto o suficiente 
+           para proporcionar uma experiência única a cada rodada.
+           
+        3. CONTROLE BOOLEANO: A dificuldade altera os limites (ranges) dos 
+           números gerados, aplicando uma função booleana interna que restringe 
+           ou expande o domínio dos operandos.
+        =====================================================================
+        """
+        
         # 1. Configura a escala de números com base na dificuldade
         if dificuldade == "Fácil":
             min_val, max_val = 1, 5

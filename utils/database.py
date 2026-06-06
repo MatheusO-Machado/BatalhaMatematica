@@ -179,3 +179,19 @@ class BancoDeDados:
             "maior_pontuacao": maior_pontuacao,
             "partidas_equacoes": partidas_equacoes
         }
+    
+    @staticmethod
+    def obter_historico_recente(usuario_id, limite=5):
+        """Busca as últimas partidas jogadas pelo usuário para o Perfil."""
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT modo, pontos, acertos, tempo 
+            FROM partidas 
+            WHERE usuario_id = ? 
+            ORDER BY id DESC 
+            LIMIT ?
+        ''', (usuario_id, limite))
+        historico = cursor.fetchall()
+        conn.close()
+        return historico

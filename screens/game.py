@@ -33,7 +33,7 @@ class TelaJogo(ctk.CTkFrame):
         self.trocar_tela_callback = trocar_tela_callback
         self.modo_atual = "Tabuada"
         
-        self.sistema_pontos = SistemaPontuacao()
+        self.sistema_pontos = SistemaPontuacao("Médio")
         self.pergunta_atual = None
         self.timer_id = None
         self.limite_tempo = 30
@@ -152,16 +152,19 @@ class TelaJogo(ctk.CTkFrame):
 
     def configurar_modo(self, modo_selecionado, dificuldade_selecionada="Médio"):
         self.modo_atual = modo_selecionado
-        self.dificuldade_atual = dificuldade_selecionada # Salva a dificuldade
+        self.dificuldade_atual = dificuldade_selecionada 
         
-        self.sistema_pontos = SistemaPontuacao()
+        self.sistema_pontos = SistemaPontuacao(dificuldade_selecionada) 
+        
         self.pergunta_atual_index = 0
         self.acertos = 0
         self.tempo_total_partida = 0
         
+        # MEMÓRIA DA PARTIDA: Guarda as equações já exibidas para evitar repetições
+        self.perguntas_feitas = set() 
+        
         self.construir_interface_jogo()
         
-        # Exibe o modo E a dificuldade no título com letras espaçadas!
         texto_titulo = f"{self.modo_atual.upper()} | {self.dificuldade_atual.upper()}"
         self.label_titulo_modo.configure(text=" ".join(texto_titulo))
         
@@ -195,6 +198,12 @@ class TelaJogo(ctk.CTkFrame):
         self.after(1500, self.proxima_pergunta)
 
     def proxima_pergunta(self):
+        # =====================================================================
+        # APLICAÇÃO MATEMÁTICA 1: LÓGICA BOOLEANA (Controle de Fluxo)
+        # =====================================================================
+        # Aqui aplicamos a lógica booleana (Verdadeiro/Falso) para verificar o estado da partida.
+        # Se a condição (pergunta_atual_index >= max_perguntas) for VERDADEIRA (True),
+        # o fluxo é interrompido e a partida finaliza.
         if self.timer_id:
             self.after_cancel(self.timer_id)
             
@@ -206,9 +215,30 @@ class TelaJogo(ctk.CTkFrame):
         self.label_info.configure(text=f"Questão {self.pergunta_atual_index} de {self.max_perguntas}")
         self.barra_progresso.set(self.pergunta_atual_index / self.max_perguntas)
             
-        self.pergunta_atual = GeradorMatematico.gerar(self.modo_atual, self.dificuldade_atual)
-        self.label_pergunta.configure(text=self.pergunta_atual["pergunta"])
+        # =====================================================================
+        # APLICAÇÃO MATEMÁTICA 2: TEORIA DOS CONJUNTOS E ANÁLISE COMBINATÓRIA
+        # =====================================================================
+        # Para evitar repetições (Análise Combinatória), utilizamos a Teoria dos Conjuntos.
+        # A variável 'self.perguntas_feitas' é um Conjunto (Set).
+        # Um conjunto matemático não admite elementos duplicados. O laço 'while' atua como
+        # um filtro: ele gera uma combinação aleatória e usa o operador de pertinência 'not in'
+        # para verificar se a equação pertence ao conjunto de questões já exibidas.
+        tentativas = 0
+        while tentativas < 20:
+            nova_pergunta = GeradorMatematico.gerar(self.modo_atual, self.dificuldade_atual)
+            
+            # Operação de Pertinência de Conjuntos (A ∉ B)
+            if nova_pergunta["pergunta"] not in self.perguntas_feitas:
+                self.pergunta_atual = nova_pergunta
+                self.perguntas_feitas.add(nova_pergunta["pergunta"]) # Adiciona o novo elemento ao Conjunto
+                break
+            tentativas += 1
+        else:
+            self.pergunta_atual = nova_pergunta
+        # =====================================================================
         
+        # PROCESSO DE SAÍDA (Interface Gráfica)
+        self.label_pergunta.configure(text=self.pergunta_atual["pergunta"])
         self.entrada_resposta.configure(state="normal", border_color="#2A2D3E")
         self.entrada_resposta.delete(0, 'end') 
         self.entrada_resposta.focus()
@@ -218,7 +248,11 @@ class TelaJogo(ctk.CTkFrame):
         self.label_tempo.configure(text=f"⏱ {self.tempo_restante}s", text_color=COR_BRANCO)
         self.timer_id = self.after(1000, self.atualizar_tempo)
 
+
     def verificar_resposta(self):
+        # =====================================================================
+        # APLICAÇÃO DE REQUISITO: ENTRADA E PROCESSAMENTO DE DADOS
+        # =====================================================================
         if self.entrada_resposta.cget("state") == "disabled":
             return
             
@@ -226,35 +260,39 @@ class TelaJogo(ctk.CTkFrame):
             self.after_cancel(self.timer_id)
             self.timer_id = None
             
+        # ENTRADA: Captura a resposta do usuário no CustomTkinter
         resposta_usuario = self.entrada_resposta.get().strip()
         resposta_correta = self.pergunta_atual["resposta"]
         self.entrada_resposta.configure(state="disabled")
         
         tempo_gasto = self.limite_tempo - self.tempo_restante
         
+        # =====================================================================
+        # APLICAÇÃO MATEMÁTICA 3: ÁLGEBRA BOOLEANA E FUNÇÕES MATEMÁTICAS
+        # =====================================================================
+        # Avaliação de proposição lógica: (resposta_usuario == resposta_correta)
+        # Se a proposição for verdadeira, disparamos as Funções Matemáticas do 
+        # Sistema de Pontuação para processar a nota baseada no tempo e multiplicadores.
         if resposta_usuario == resposta_correta:
             self.acertos += 1
             self.piscar_caixa_texto(COR_VERDE) 
+            
+            # Chamada de Função Matemática Externa (Processamento de Pontos e Multiplicadores)
             pontos_ganhos, mult = self.sistema_pontos.registrar_acerto(tempo_gasto)
             
-            # Efeito especial de feedback
+            # SAÍDA: Feedback visual Positivo
             texto_extra = "🔥" if mult > 1.0 else "✨"
             self.label_feedback.configure(text=f"CORRETO! {texto_extra} +{pontos_ganhos} pts", text_color=COR_VERDE)
         else:
+            # Se a proposição for falsa, o combo é zerado
             self.sistema_pontos.registrar_erro()
             self.piscar_caixa_texto(COR_VERMELHO) 
+            
+            # SAÍDA: Feedback visual Negativo
             self.label_feedback.configure(text=f"INCORRETO! O certo era {resposta_correta}.", text_color=COR_VERMELHO)
             
         self.atualizar_textos_rodape()
         self.after(1500, self.proxima_pergunta)
-
-    def atualizar_textos_rodape(self):
-        self.label_pontos.configure(text=f"⭐ Pontos: {self.sistema_pontos.pontos_totais}")
-        
-        # Se o combo passar de 3, muda a cor para laranja neon para dar sensação de poder
-        cor_combo = "#FF4500" if self.sistema_pontos.combo_atual >= 3 else "#A0A0A0"
-        self.label_combo.configure(text=f"🔥 Combo: {self.sistema_pontos.combo_atual}x", text_color=cor_combo)
-
     
     def finalizar_partida(self):
         # 1. Para os relógios do jogo
@@ -284,7 +322,18 @@ class TelaJogo(ctk.CTkFrame):
         
         # 4. Envia os dados para a Tela de Resultados e faz a troca
         tela_resultados = self.master.telas["resultados"]
-        tela_resultados.configurar_resultados(estatisticas)
+        
+        # Calcula a quantidade de erros
+        total_erros = self.pergunta_atual_index - self.acertos
+
+        # Chama a tela de resultados nova usando os nomes exatos do seu Sistema de Pontuação!
+        tela_resultados.mostrar_resultados(
+            pontos=self.sistema_pontos.pontos_totais, # <--- O NOME EXATO ERA ESSE!
+            acertos=self.acertos,
+            erros=total_erros,
+            tempo=self.tempo_total_partida,
+            max_combo=getattr(self.sistema_pontos, 'combo_maximo', self.sistema_pontos.combo_atual) # Segurança contra crash
+        )
         self.trocar_tela_callback("resultados")
 
     def criar_card_stat(self, master, titulo, valor, cor, coluna):

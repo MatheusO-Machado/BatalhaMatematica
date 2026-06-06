@@ -16,6 +16,9 @@ class TelaJogo(ctk.CTkFrame):
         super().__init__(master, fg_color=COR_FUNDO)
         self.trocar_tela_callback = trocar_tela_callback
         
+        # O modo padrão (será substituído quando clicar no cartão)
+        self.modo_atual = "Tabuada"
+        
         # --- SISTEMAS E DADOS DA PARTIDA ---
         self.sistema_pontos = SistemaPontuacao()
         self.pergunta_atual = None
@@ -23,12 +26,19 @@ class TelaJogo(ctk.CTkFrame):
         
         self.limite_tempo = 30
         self.tempo_restante = 30
-        self.tempo_total_partida = 0 # Guarda o tempo de toda a jogatina
+        self.tempo_total_partida = 0 
         
         self.max_perguntas = 10
         self.pergunta_atual_index = 0
-        self.acertos = 0 # Rastreador de desempenho
+        self.acertos = 0 
         
+        self.construir_interface_jogo()
+
+    def construir_interface_jogo(self):
+        # Limpa a tela caso tenha sobrado a tela de resultados de uma partida anterior
+        for widget in self.winfo_children():
+            widget.destroy()
+
         # --- INTERFACE: CABEÇALHO ---
         self.frame_topo = ctk.CTkFrame(self, fg_color="transparent")
         self.frame_topo.pack(fill="x", padx=40, pady=(20, 10))
@@ -42,13 +52,13 @@ class TelaJogo(ctk.CTkFrame):
         # --- BARRA DE PROGRESSO ---
         self.barra_progresso = ctk.CTkProgressBar(self, width=800, height=10, fg_color="#1E1E2E", progress_color=COR_ROXO)
         self.barra_progresso.pack(padx=40, pady=(0, 20))
-        self.barra_progresso.set(0) # Inicia vazia
+        self.barra_progresso.set(0)
         
         # --- INTERFACE: ÁREA CENTRAL ---
         self.frame_central = ctk.CTkFrame(self, fg_color="#151722", corner_radius=15)
         self.frame_central.pack(fill="both", expand=True, padx=40, pady=20)
         
-        self.label_titulo_modo = ctk.CTkLabel(self.frame_central, text="Tabuada", font=("Arial", 16), text_color="#A0A0A0")
+        self.label_titulo_modo = ctk.CTkLabel(self.frame_central, text=self.modo_atual, font=("Arial", 16), text_color="#A0A0A0")
         self.label_titulo_modo.pack(pady=(30, 0))
         
         self.label_pergunta = ctk.CTkLabel(self.frame_central, text="", font=("Arial", 64, "bold"), text_color=COR_BRANCO)
@@ -82,15 +92,27 @@ class TelaJogo(ctk.CTkFrame):
         self.label_pontos = ctk.CTkLabel(self.frame_rodape, text="⭐ Pontos: 0", font=("Arial", 14), text_color="#A0A0A0")
         self.label_pontos.pack(side="left")
 
-        # Inicia o loop
+    def configurar_modo(self, modo_selecionado):
+        """Prepara o terreno toda vez que um modo novo for escolhido"""
+        self.modo_atual = modo_selecionado
+        
+        # Reseta os dados
+        self.sistema_pontos = SistemaPontuacao()
+        self.pergunta_atual_index = 0
+        self.acertos = 0
+        self.tempo_total_partida = 0
+        
+        # Garante que a interface do jogo esteja limpa e pronta
+        self.construir_interface_jogo()
+        self.label_titulo_modo.configure(text=self.modo_atual)
+        
+        self.atualizar_textos_rodape()
         self.proxima_pergunta()
 
     def atualizar_tempo(self):
-        # Contagem Regressiva e Registro do Tempo Total
         self.tempo_restante -= 1
         self.tempo_total_partida += 1 
         
-        # Muda a cor para vermelho se faltar 5 segundos
         cor = COR_VERMELHO if self.tempo_restante <= 5 else COR_BRANCO
         self.label_tempo.configure(text=f"⏱ {self.tempo_restante}s", text_color=cor)
         
@@ -119,22 +141,19 @@ class TelaJogo(ctk.CTkFrame):
             
         self.pergunta_atual_index += 1
         
-        # Atualiza a interface superior
         self.label_info.configure(text=f"Questão {self.pergunta_atual_index} de {self.max_perguntas}")
         progresso = self.pergunta_atual_index / self.max_perguntas
         self.barra_progresso.set(progresso)
             
-        # Gera e exibe a nova pergunta
-        self.pergunta_atual = GeradorMatematico.gerar_tabuada()
+        # O Motor Procedural gera a pergunta baseada no modo
+        self.pergunta_atual = GeradorMatematico.gerar(self.modo_atual)
         self.label_pergunta.configure(text=self.pergunta_atual["pergunta"])
         
-        # Reseta os campos
         self.entrada_resposta.configure(state="normal")
         self.entrada_resposta.delete(0, 'end') 
         self.entrada_resposta.focus()
         self.label_feedback.configure(text="")
         
-        # Reseta o timer para 30
         self.tempo_restante = self.limite_tempo
         self.label_tempo.configure(text=f"⏱ {self.tempo_restante}s", text_color=COR_BRANCO)
         self.timer_id = self.after(1000, self.atualizar_tempo)
@@ -151,7 +170,6 @@ class TelaJogo(ctk.CTkFrame):
         resposta_correta = self.pergunta_atual["resposta"]
         self.entrada_resposta.configure(state="disabled")
         
-        # Calcula quanto tempo o jogador gastou para responder (para o bônus do GDD)
         tempo_gasto = self.limite_tempo - self.tempo_restante
         
         if resposta_usuario == resposta_correta:
@@ -170,16 +188,14 @@ class TelaJogo(ctk.CTkFrame):
         self.label_combo.configure(text=f"🔥 Combo: {self.sistema_pontos.combo_atual}")
 
     def finalizar_partida(self):
-        # Destrói a interface de jogo atual
+        # Destrói apenas os elementos da partida ativa
         self.frame_topo.destroy()
         self.barra_progresso.destroy()
         self.frame_central.destroy()
         self.frame_rodape.destroy()
         
-        # Cálculos de Desempenho
         desempenho_pct = int((self.acertos / self.max_perguntas) * 100)
         
-        # Frase Motivacional dinâmica
         if desempenho_pct == 100:
             frase = "Perfeito! Você é um mestre da matemática! 🏆"
         elif desempenho_pct >= 70:
@@ -196,7 +212,6 @@ class TelaJogo(ctk.CTkFrame):
         label_frase = ctk.CTkLabel(self, text=frase, font=("Arial", 20), text_color="#A0A0A0")
         label_frase.pack(pady=(0, 40))
         
-        # Container para os cards estatísticos
         frame_cards = ctk.CTkFrame(self, fg_color="transparent")
         self.criar_card_resultado(frame_cards, "Acertos", f"{self.acertos}/{self.max_perguntas}", COR_VERDE, 0)
         self.criar_card_resultado(frame_cards, "Desempenho", f"{desempenho_pct}%", COR_AZUL, 1)
@@ -204,7 +219,6 @@ class TelaJogo(ctk.CTkFrame):
         self.criar_card_resultado(frame_cards, "Pontos", f"{self.sistema_pontos.pontos_totais}", COR_AMARELO, 3)
         frame_cards.pack(pady=10)
 
-        # Botão de Voltar ao Menu
         btn_voltar = ctk.CTkButton(
             self, text="Voltar ao Menu Principal", fg_color=COR_ROXO, 
             font=("Arial", 16, "bold"), width=250, height=50,
@@ -213,10 +227,9 @@ class TelaJogo(ctk.CTkFrame):
         btn_voltar.pack(pady=40)
 
     def criar_card_resultado(self, master, titulo, valor, cor, coluna):
-        # Método auxiliar para desenhar os "quadrados" de resultados
         card = ctk.CTkFrame(master, fg_color="#151722", border_color=cor, border_width=1, corner_radius=10, width=120, height=120)
         card.grid(row=0, column=coluna, padx=10)
-        card.pack_propagate(False) # Mantém o tamanho fixo
+        card.pack_propagate(False) 
         
         lbl_valor = ctk.CTkLabel(card, text=valor, font=("Arial", 28, "bold"), text_color=cor)
         lbl_valor.pack(pady=(30, 5))

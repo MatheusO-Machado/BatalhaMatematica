@@ -2,6 +2,7 @@ import customtkinter as ctk
 from screens.menu import TelaMenu
 from screens.selecao_modo import TelaSelecaoModo
 from screens.game import TelaJogo
+from screens.resultados import TelaResultados
 
 class BatalhaMatematicaApp(ctk.CTk):
     def __init__(self):
@@ -22,6 +23,7 @@ class BatalhaMatematicaApp(ctk.CTk):
         self.telas["menu"] = TelaMenu(self, self.mostrar_tela)
         self.telas["selecao_modo"] = TelaSelecaoModo(self, self.mostrar_tela)
         self.telas["jogo"] = TelaJogo(self, self.mostrar_tela)
+        self.telas["resultados"] = TelaResultados(self, self.mostrar_tela)
         
         # Inicia mostrando o menu
         self.mostrar_tela("menu")

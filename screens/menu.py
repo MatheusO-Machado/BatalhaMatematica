@@ -1,48 +1,131 @@
 import customtkinter as ctk
+import random
 
-COR_FUNDO = "#0B0C10" # Fundo bem escuro
+# Paleta de Cores Premium (Dark Theme)
+COR_FUNDO = "#0B0C10" 
 COR_ROXO = "#8A2BE2"
 COR_AZUL = "#00BFFF"
 COR_AMARELO = "#FFD700"
+COR_BRANCO = "#FFFFFF"
+COR_CINZA = "#A0A0A0"
+
+class BotaoAnimado(ctk.CTkButton):
+    """
+    Botão com efeito de levitação e mudança de luminosidade.
+    """
+    def __init__(self, master, cor_base, cor_hover, **kwargs):
+        super().__init__(master, fg_color=cor_base, **kwargs)
+        self.cor_base = cor_base
+        self.cor_hover = cor_hover
+        
+        self.bind("<Enter>", self.on_enter)
+        self.bind("<Leave>", self.on_leave)
+
+    def on_enter(self, event):
+        self.configure(fg_color=self.cor_hover, cursor="hand2")
+        self.pack_configure(pady=(15, 25))
+
+    def on_leave(self, event):
+        self.configure(fg_color=self.cor_base)
+        self.pack_configure(pady=20)
 
 class TelaMenu(ctk.CTkFrame):
     def __init__(self, master, trocar_tela_callback):
         super().__init__(master, fg_color=COR_FUNDO)
         self.trocar_tela_callback = trocar_tela_callback
 
-        # Container centralizado
+        # 1. ELEMENTOS DE FUNDO AVANÇADOS
+        self.criar_fundo_decorativo()
+
+        # 2. CONTAINER PRINCIPAL
         self.frame_central = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_central.place(relx=0.5, rely=0.5, anchor="center")
+        self.frame_central.place(relx=0.5, rely=0.45, anchor="center")
+
+        # Ícone animado
+        self.label_icone = ctk.CTkLabel(self.frame_central, text="⚡ ✨", font=("Arial", 42))
+        self.label_icone.pack(pady=(0, 10))
 
         # Título
-        self.label_icone = ctk.CTkLabel(self.frame_central, text="⚡ ✨", font=("Arial", 30))
-        self.label_icone.pack()
+        self.label_batalha = ctk.CTkLabel(self.frame_central, text="Batalha", font=("Arial", 72, "bold"), text_color=COR_ROXO)
+        self.label_batalha.pack()
+        
+        self.label_matematica = ctk.CTkLabel(self.frame_central, text="Matemática", font=("Arial", 72, "bold"), text_color=COR_BRANCO)
+        self.label_matematica.pack(pady=(0, 20))
 
-        self.label_titulo = ctk.CTkLabel(self.frame_central, text="Batalha\nMatemática", font=("Arial", 60, "bold"), text_color="#FFFFFF")
-        self.label_titulo.pack(pady=(0, 10))
+        # Linha Neon
+        linha_neon = ctk.CTkFrame(self.frame_central, fg_color=COR_ROXO, width=150, height=3, corner_radius=5)
+        linha_neon.pack(pady=(0, 20))
 
-        self.label_sub = ctk.CTkLabel(self.frame_central, text="Aprender nunca foi tão divertido", font=("Arial", 18), text_color="#A0A0A0")
-        self.label_sub.pack(pady=(0, 40))
+        self.label_sub = ctk.CTkLabel(self.frame_central, text="Aprender nunca foi tão divertido", font=("Arial", 20), text_color=COR_CINZA)
+        self.label_sub.pack(pady=(0, 50))
 
-        # Container para os botões ficarem lado a lado
+        # 3. ÁREA DOS BOTÕES
         self.frame_botoes = ctk.CTkFrame(self.frame_central, fg_color="transparent")
         self.frame_botoes.pack()
 
-        self.btn_jogar = ctk.CTkButton(
-            self.frame_botoes, text="▷ Jogar", font=("Arial", 18, "bold"),
-            fg_color=COR_ROXO, hover_color="#6A1B9A", width=150, height=50,
+        self.btn_jogar = BotaoAnimado(
+            self.frame_botoes, 
+            cor_base=COR_ROXO, cor_hover="#A349FF",
+            text="▷ Jogar", font=("Arial", 18, "bold"), text_color=COR_BRANCO,
+            width=200, height=55, corner_radius=12,
             command=lambda: self.trocar_tela_callback("selecao_modo")
         )
-        self.btn_jogar.pack(side="left", padx=10)
+        self.btn_jogar.pack(side="left", padx=15, pady=20)
 
-        self.btn_ranking = ctk.CTkButton(
-            self.frame_botoes, text="🏆 Ranking", font=("Arial", 18, "bold"),
-            fg_color="transparent", border_color=COR_AZUL, border_width=2, hover_color="#1A2B3C", width=150, height=50
+        self.btn_ranking = BotaoAnimado(
+            self.frame_botoes, 
+            cor_base="transparent", cor_hover="#1A1F2E",
+            text="🏆 Ranking", font=("Arial", 18, "bold"), text_color=COR_AZUL,
+            border_color=COR_AZUL, border_width=2, width=200, height=55, corner_radius=12
         )
-        self.btn_ranking.pack(side="left", padx=10)
+        self.btn_ranking.pack(side="left", padx=15, pady=20)
 
-        self.btn_manual = ctk.CTkButton(
-            self.frame_botoes, text="📖 Manual", font=("Arial", 18, "bold"),
-            fg_color="transparent", border_color=COR_AMARELO, border_width=2, hover_color="#332B00", width=150, height=50
+        self.btn_manual = BotaoAnimado(
+            self.frame_botoes, 
+            cor_base="transparent", cor_hover="#2E2800",
+            text="📖 Manual", font=("Arial", 18, "bold"), text_color=COR_AMARELO,
+            border_color=COR_AMARELO, border_width=2, width=200, height=55, corner_radius=12
         )
-        self.btn_manual.pack(side="left", padx=10)
+        self.btn_manual.pack(side="left", padx=15, pady=20)
+
+        # 4. RODAPÉ
+        self.label_rodape = ctk.CTkLabel(
+            self, text="v1.0", 
+            font=("Arial", 12, "bold"), text_color="#2A2D3E"
+        )
+        self.label_rodape.pack(side="bottom", pady=20)
+
+    def criar_fundo_decorativo(self):
+        """
+        Gera um efeito de 'Matrix Matemática' com profundidade.
+        Usa múltiplas cores e tamanhos para simular 3D.
+        """
+        # Adicionado equações complexas e mais símbolos
+        simbolos = [
+            "+", "-", "x", "÷", "=", "∑", "π", "√", "∞", "∫", "θ", "Δ", 
+            "E=mc²", "x²", "y=mx+b", "φ", "Ω", "α", "β", "f(x)", "lim", "dx/dy", "≠", "≈"
+        ]
+        
+        # Três camadas de profundidade visual
+        camadas_cores = [
+            "#0E0F14", # Muito fundo (quase preto)
+            "#12141C", # Fundo médio (cinza escuro)
+            "#1A1525"  # Mais perto (roxo extremamente escuro)
+        ]
+        
+        # Aumentamos de 15 para 65 tentativas de desenho
+        for _ in range(65):
+            simbolo = random.choice(simbolos)
+            tamanho = random.randint(14, 40)
+            cor = random.choice(camadas_cores)
+            
+            pos_x = random.uniform(0.01, 0.99)
+            pos_y = random.uniform(0.01, 0.99)
+            
+            # Caixa de proteção: Impede que os símbolos cubram os botões e o título
+            # Aumentamos a zona de segurança para acomodar os botões maiores
+            if 0.20 < pos_x < 0.80 and 0.25 < pos_y < 0.85:
+                continue 
+
+            lbl = ctk.CTkLabel(self, text=simbolo, font=("Arial", tamanho, "bold"), text_color=cor)
+            lbl.place(relx=pos_x, rely=pos_y, anchor="center")

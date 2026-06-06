@@ -1,111 +1,79 @@
 import customtkinter as ctk
 
-COR_FUNDO = "#0B0C10"
+class CardModo(ctk.CTkFrame):
+    def __init__(self, master, titulo, desc, cor, icone, dificuldade, cor_dif, comando):
+        # 1. Tamanho FIXO absoluto. O cartão não vai encolher nem esticar.
+        super().__init__(master, fg_color="#12131C", border_color="#1A1C29", border_width=2, corner_radius=15, width=240, height=250)
+        
+        # 2. A TRAVA MÁGICA: Impede que os textos de dentro deformem o cartão de fora
+        self.pack_propagate(False) 
+        
+        # Efeitos visuais de Hover e Clique
+        self.bind("<Enter>", lambda e: self.configure(border_color=cor, cursor="hand2"))
+        self.bind("<Leave>", lambda e: self.configure(border_color="#1A1C29"))
+        self.bind("<Button-1>", lambda e: comando())
+        
+        # Selo de dificuldade usando 'place' (coordenada absoluta) para não bagunçar o alinhamento do resto
+        selo = ctk.CTkLabel(self, text=dificuldade, font=("Arial", 11, "bold"), text_color="white", fg_color=cor_dif, corner_radius=8, width=60, height=26)
+        selo.place(x=165, y=15) 
+        
+        # Ícone centralizado
+        lbl_icone = ctk.CTkLabel(self, text=icone, font=("Arial", 50), text_color=cor)
+        lbl_icone.pack(pady=(40, 10))
+        
+        # Textos principais
+        lbl_titulo = ctk.CTkLabel(self, text=titulo, font=("Arial", 20, "bold"), text_color="#FFFFFF")
+        lbl_titulo.pack()
+        
+        lbl_desc = ctk.CTkLabel(self, text=desc, font=("Arial", 13), text_color="#A0A0A0")
+        lbl_desc.pack(pady=(5, 0))
+        
+        # Rodapé fixo na base
+        lbl_rodape = ctk.CTkLabel(self, text="⭐ 10 questões    ⏱ 30s", font=("Arial", 11), text_color="#5D6275")
+        lbl_rodape.pack(side="bottom", pady=20)
+
+        # Garante que clicar no texto também ativa o botão
+        for filho in [selo, lbl_icone, lbl_titulo, lbl_desc, lbl_rodape]:
+            filho.bind("<Button-1>", lambda e: comando())
+            filho.bind("<Enter>", lambda e: self.configure(border_color=cor, cursor="hand2"))
+            filho.bind("<Leave>", lambda e: self.configure(border_color="#1A1C29"))
 
 class TelaSelecaoModo(ctk.CTkFrame):
     def __init__(self, master, trocar_tela_callback):
-        super().__init__(master, fg_color=COR_FUNDO)
+        super().__init__(master, fg_color="#0B0C10")
         self.trocar_tela_callback = trocar_tela_callback
+        
+        # --- CABEÇALHO ---
+        frame_topo = ctk.CTkFrame(self, fg_color="transparent")
+        frame_topo.pack(fill="x", padx=40, pady=(30, 0))
+        
+        btn_voltar = ctk.CTkButton(frame_topo, text="←", font=("Arial", 24, "bold"), width=40, height=40, fg_color="transparent", hover_color="#1E1E2E", command=lambda: trocar_tela_callback("menu"))
+        btn_voltar.pack(side="left")
+        
+        ctk.CTkLabel(frame_topo, text="Escolha seu Modo", font=("Arial", 28, "bold"), text_color="#FFFFFF").pack(side="left", padx=20)
 
-        # Cabeçalho
-        self.frame_topo = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_topo.pack(fill="x", padx=40, pady=(30, 20))
+        # --- CAIXA CENTRALIZADORA ---
+        # Tudo que entrar aqui vai ficar perfeitamente no meio da tela
+        container_central = ctk.CTkFrame(self, fg_color="transparent")
+        container_central.pack(expand=True)
 
-        self.btn_voltar = ctk.CTkButton(
-            self.frame_topo,
-            text="←",
-            font=("Arial", 24, "bold"),
-            width=40,
-            height=40,
-            fg_color="transparent",
-            hover_color="#1E1E2E",
-            command=lambda: self.trocar_tela_callback("menu")
-        )
-        self.btn_voltar.pack(side="left")
+        # --- LINHA 1 (3 Cartões) ---
+        linha1 = ctk.CTkFrame(container_central, fg_color="transparent")
+        linha1.pack(pady=15)
+        
+        CardModo(linha1, "Tabuada", "Multiplicação", "#8A2BE2", "✖", "Fácil", "#38B000", lambda: self.iniciar("Tabuada")).pack(side="left", padx=15)
+        CardModo(linha1, "Frações", "Partes do todo", "#00BFFF", "◴", "Médio", "#FFBE0B", lambda: self.iniciar("Frações")).pack(side="left", padx=15)
+        CardModo(linha1, "Porcentagem", "Descontos", "#38B000", "%", "Médio", "#FFBE0B", lambda: self.iniciar("Porcentagem")).pack(side="left", padx=15)
 
-        self.label_titulo = ctk.CTkLabel(
-            self.frame_topo,
-            text="Escolha seu Modo",
-            font=("Arial", 28, "bold"),
-            text_color="#FFFFFF"
-        )
-        self.label_titulo.pack(side="left", padx=20)
+        # --- LINHA 2 (2 Cartões) ---
+        # --- LINHA 2 (3 Cartões) ---
+        linha2 = ctk.CTkFrame(container_central, fg_color="transparent")
+        linha2.pack(pady=15)
+        
+        CardModo(linha2, "Regra de Três", "Proporcionalidade", "#FFD700", "⚖️", "Difícil", "#D90429", lambda: self.iniciar("Regra de Três")).pack(side="left", padx=15)
+        CardModo(linha2, "Equações", "Valor de X", "#D90429", "⊞", "Difícil", "#D90429", lambda: self.iniciar("Equações")).pack(side="left", padx=15)
+        CardModo(linha2, "Desafio Rápido", "Mistura total", "#9D4EDD", "⚡", "Extremo", "#8A2BE2", lambda: self.iniciar("Desafio Rápido")).pack(side="left", padx=15)
 
-        # Grid de Cartões
-        self.frame_grid = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_grid.pack(pady=10)
-
-        # Criando os 6 cartões (Linha, Coluna, Título, Descrição, Cor, Dificuldade)
-        self.criar_card(0, 0, "Tabuada", "Domine a multiplicação", "#8A2BE2", "Fácil", "#38B000", "jogo")
-        self.criar_card(0, 1, "Frações", "Trabalhe com partes", "#00BFFF", "Médio", "#FFBE0B", "jogo_fracoes")
-        self.criar_card(0, 2, "Porcentagem", "Calcule descontos", "#38B000", "Médio", "#FFBE0B", "jogo_porcentagem")
-
-        self.criar_card(1, 0, "Regra de Três", "Proporcionalidade", "#FFD700", "Difícil", "#D90429", "jogo_regra")
-        self.criar_card(1, 1, "Equações", "Encontre o X", "#D90429", "Difícil", "#D90429", "jogo_equacoes")
-        self.criar_card(1, 2, "Desafio Rápido", "Mistura de tudo", "#9D4EDD", "Extremo", "#8A2BE2", "jogo_misturado")
-
-    def criar_card(self, linha, coluna, titulo, desc, cor_borda, dif_texto, dif_cor, tela_alvo):
-        # O Cartão
-        card = ctk.CTkFrame(
-            self.frame_grid,
-            fg_color="#12131C",
-            border_color=cor_borda,
-            border_width=1,
-            corner_radius=15,
-            width=260,
-            height=180
-        )
-        card.grid(row=linha, column=coluna, padx=15, pady=15)
-        card.pack_propagate(False)
-
-        # Selo de Dificuldade
-        selo = ctk.CTkLabel(
-            card,
-            text=dif_texto,
-            font=("Arial", 12, "bold"),
-            text_color="#12131C",
-            fg_color=dif_cor,
-            corner_radius=10,
-            width=60,
-            height=25
-        )
-        selo.pack(anchor="ne", padx=10, pady=10)
-
-        # Textos
-        lbl_titulo = ctk.CTkLabel(
-            card,
-            text=titulo,
-            font=("Arial", 20, "bold"),
-            text_color=cor_borda
-        )
-        lbl_titulo.pack(anchor="w", padx=20, pady=(10, 0))
-
-        lbl_desc = ctk.CTkLabel(
-            card,
-            text=desc,
-            font=("Arial", 12),
-            text_color="#A0A0A0"
-        )
-        lbl_desc.pack(anchor="w", padx=20)
-
-        # Botão invisível que cobre o cartão todo
-        btn_clique = ctk.CTkButton(
-            card,
-            text="10 questões  ⏱ 30s",
-            font=("Arial", 12),
-            text_color="#A0A0A0",
-            fg_color="transparent",
-            hover_color="#1A1C29",
-
-            # Passa o nome do título do cartão (ex: "Equações", "Frações")
-            command=lambda m=titulo: self.iniciar_modo(m)
-        )
-        btn_clique.pack(side="bottom", fill="x", pady=15)
-
-    def iniciar_modo(self, modo_escolhido):
-        # Acessa a tela de jogo, configura o modo escolhido e faz a troca
-        tela_jogo = self.master.telas["jogo"]
-
-        tela_jogo.configurar_modo(modo_escolhido)
-
+    def iniciar(self, modo):
+        self.master.telas["jogo"].configurar_modo(modo)
         self.trocar_tela_callback("jogo")

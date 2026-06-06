@@ -1,0 +1,9 @@
+# Banco de Dados SQLite
+*.db
+*.sqlite
+*.sqlite3
+batalha_matematica.db
+
+# Cache do Python
+__pycache__/
+*.pyc

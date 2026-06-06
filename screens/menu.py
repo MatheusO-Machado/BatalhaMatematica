@@ -59,6 +59,19 @@ class TelaMenu(ctk.CTkFrame):
         self.label_sub = ctk.CTkLabel(self.frame_central, text="Aprender nunca foi tão divertido", font=("Arial", 20), text_color=COR_CINZA)
         self.label_sub.pack(pady=(0, 50))
 
+        # --- BOTÃO DE PERFIL (Canto Superior Direito) ---
+        self.frame_usuario = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_usuario.pack(anchor="ne", padx=40, pady=30)
+
+        # Botão de engrenagem/perfil elegante
+        self.btn_perfil = ctk.CTkButton(
+            self.frame_usuario, text="👤 Meu Perfil", font=("Arial", 14, "bold"),
+            fg_color="#12131C", hover_color=COR_ROXO, text_color=COR_BRANCO,
+            border_color="#1A1C29", border_width=1, width=130, height=40, corner_radius=10,
+            command=lambda: self.trocar_tela_callback("perfil")
+        )
+        self.btn_perfil.pack(side="right")
+
         # 3. ÁREA DOS BOTÕES
         self.frame_botoes = ctk.CTkFrame(self.frame_central, fg_color="transparent")
         self.frame_botoes.pack()
@@ -76,21 +89,24 @@ class TelaMenu(ctk.CTkFrame):
             self.frame_botoes, 
             cor_base="transparent", cor_hover="#1A1F2E",
             text="🏆 Ranking", font=("Arial", 18, "bold"), text_color=COR_AZUL,
-            border_color=COR_AZUL, border_width=2, width=200, height=55, corner_radius=12
+            border_color=COR_AZUL, border_width=2, width=200, height=55, corner_radius=12, # <--- OLHA A VÍRGULA AQUI NO FINAL
+            command=lambda: self.trocar_tela_callback("ranking")
         )
         self.btn_ranking.pack(side="left", padx=15, pady=20)
 
-        self.btn_manual = BotaoAnimado(
+        # Botão Como Jogar (Antigo Manual)
+        self.btn_como_jogar = BotaoAnimado(
             self.frame_botoes, 
             cor_base="transparent", cor_hover="#2E2800",
-            text="📖 Manual", font=("Arial", 18, "bold"), text_color=COR_AMARELO,
-            border_color=COR_AMARELO, border_width=2, width=200, height=55, corner_radius=12
+            text="📖 Como Jogar", font=("Arial", 18, "bold"), text_color=COR_AMARELO,
+            border_color=COR_AMARELO, border_width=2, width=200, height=55, corner_radius=12,
+            command=lambda: self.trocar_tela_callback("como_jogar")
         )
-        self.btn_manual.pack(side="left", padx=15, pady=20)
+        self.btn_como_jogar.pack(side="left", padx=15, pady=20)
 
         # 4. RODAPÉ
         self.label_rodape = ctk.CTkLabel(
-            self, text="v1.0", 
+            self, text="v1.0  |  Desenvolvido por Matheus", 
             font=("Arial", 12, "bold"), text_color="#2A2D3E"
         )
         self.label_rodape.pack(side="bottom", pady=20)

@@ -1,110 +1,55 @@
 import random
 
 class GeradorMatematico:
-    """
-    =========================================================================
-    MÓDULO DE GERAÇÃO PROCEDURAL UNIVERSAL
-    =========================================================================
-    Aplica conceitos de Álgebra, Proporcionalidade e Análise Combinatória 
-    para gerar desafios infinitos e dinâmicos para todos os modos do jogo.
-    =========================================================================
-    """
-
     @staticmethod
-    def gerar(modo):
-        # Lógica Booleana de Roteamento
+    def gerar(modo, dificuldade="Médio"):
+        # 1. Configura a escala de números com base na dificuldade
+        if dificuldade == "Fácil":
+            min_val, max_val = 1, 5
+        elif dificuldade == "Médio":
+            min_val, max_val = 2, 12
+        elif dificuldade == "Difícil":
+            min_val, max_val = 5, 25
+        else: # Extremo
+            min_val, max_val = 15, 99
+
+        # 2. Gera a pergunta de acordo com o modo
         if modo == "Tabuada":
-            return GeradorMatematico.gerar_tabuada()
+            a = random.randint(min_val, max_val)
+            b = random.randint(min_val, max_val)
+            return {"pergunta": f"{a} x {b}", "resposta": str(a * b)}
+
         elif modo == "Frações":
-            return GeradorMatematico.gerar_fracoes()
+            # Para não complicar a digitação, o jogo pede a resolução do inteiro da fração
+            den = random.randint(2, 10)
+            num = den * random.randint(min_val, max_val)
+            return {"pergunta": f"{num} / {den}", "resposta": str(int(num/den))}
+
         elif modo == "Porcentagem":
-            return GeradorMatematico.gerar_porcentagem()
+            # Fáceis são números redondos, Difíceis são números quebrados
+            pct = random.choice([10, 20, 25, 50]) if dificuldade in ["Fácil", "Médio"] else random.randint(1, 99)
+            val = random.randint(1, 10) * 10 if dificuldade in ["Fácil", "Médio"] else random.randint(10, 500)
+            resp = int((pct / 100) * val)
+            return {"pergunta": f"{pct}% de {val}", "resposta": str(resp)}
+
         elif modo == "Regra de Três":
-            return GeradorMatematico.gerar_regra_tres()
+            a = random.randint(2, max_val)
+            b = random.randint(2, 10) * a
+            c = random.randint(2, max_val)
+            resp = int((b * c) / a)
+            return {"pergunta": f"{a} ➔ {b}\n{c} ➔ x", "resposta": str(resp)}
+
         elif modo == "Equações":
-            return GeradorMatematico.gerar_equacoes()
+            x = random.randint(min_val, max_val)
+            a = random.randint(1, 5)
+            b = random.randint(1, 20)
+            c = (a * x) + b
+            if a == 1:
+                return {"pergunta": f"x + {b} = {c}", "resposta": str(x)}
+            return {"pergunta": f"{a}x + {b} = {c}", "resposta": str(x)}
+
         elif modo == "Desafio Rápido":
-            # Probabilidade: Sorteia uniformemente entre as 5 categorias
-            modos_disponiveis = ["Tabuada", "Frações", "Porcentagem", "Regra de Três", "Equações"]
-            sorteio = random.choice(modos_disponiveis)
-            return GeradorMatematico.gerar(sorteio)
-        else:
-            return GeradorMatematico.gerar_tabuada()
+            modos_base = ["Tabuada", "Porcentagem", "Equações"]
+            return GeradorMatematico.gerar(random.choice(modos_base), dificuldade)
 
-    @staticmethod
-    def gerar_tabuada():
-        fator_x = random.randint(1, 10)
-        fator_y = random.randint(1, 10)
-        return {
-            "pergunta": f"{fator_x} x {fator_y} = ?",
-            "resposta": str(fator_x * fator_y)
-        }
-
-    @staticmethod
-    def gerar_fracoes():
-        # Para facilitar a digitação da resposta, mantemos denominadores iguais
-        denominador = random.randint(2, 10)
-        num1 = random.randint(1, denominador - 1)
-        num2 = random.randint(1, denominador - 1)
-        soma = num1 + num2
-        
-        # Se a soma for igual ou divisível pelo denominador, a resposta é um número inteiro
-        if soma % denominador == 0:
-            resposta = str(soma // denominador)
-        else:
-            resposta = f"{soma}/{denominador}"
-            
-        return {
-            "pergunta": f"{num1}/{denominador} + {num2}/{denominador} = ?",
-            "resposta": resposta
-        }
-
-    @staticmethod
-    def gerar_porcentagem():
-        # Cálculos percentuais exatos para o jogador responder mentalmente
-        pct = random.choice([10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90])
-        valor_base = random.randint(1, 20) * 10  # Gera valores de 10 a 200
-        
-        resultado = int((pct / 100) * valor_base)
-        return {
-            "pergunta": f"{pct}% de {valor_base} = ?",
-            "resposta": str(resultado)
-        }
-
-    @staticmethod
-    def gerar_regra_tres():
-        """ 
-        Garante que a razão seja inteira: Se A = B, C = X  -->  X = (B * C) / A 
-        Criamos B como múltiplo de A para que o resultado X seja sempre inteiro.
-        """
-        multiplicador = random.randint(2, 10)
-        A = random.randint(2, 10)
-        B = A * multiplicador
-        C = random.randint(2, 10)
-        X = C * multiplicador
-        
-        return {
-            "pergunta": f"Se {A} vale {B},\n{C} vale... ?",
-            "resposta": str(X)
-        }
-
-    @staticmethod
-    def gerar_equacoes():
-        """ 
-        Álgebra Linear Básica: Ax + B = C 
-        O sistema sorteia X primeiro para garantir que a equação tenha solução exata.
-        """
-        A = random.randint(1, 5)
-        X = random.randint(1, 10)
-        B = random.randint(1, 20)
-        C = (A * X) + B
-        
-        if A == 1:
-            pergunta = f"x + {B} = {C}"
-        else:
-            pergunta = f"{A}x + {B} = {C}"
-            
-        return {
-            "pergunta": pergunta,
-            "resposta": str(X)
-        }
+        return {"pergunta": "2 + 2", "resposta": "4"}

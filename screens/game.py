@@ -2,6 +2,7 @@ import customtkinter as ctk
 import random
 from utils.pontuacao import SistemaPontuacao
 from utils.geradores import GeradorMatematico
+from utils.database import BancoDeDados
 
 # Paleta de Cores Premium (Dark Theme)
 COR_FUNDO = "#0B0C10" 
@@ -149,14 +150,21 @@ class TelaJogo(ctk.CTkFrame):
         self.label_pontos = ctk.CTkLabel(self.caixa_pontos, text="⭐ Pontos: 0", font=("Arial", 16, "bold"), text_color=COR_AMARELO)
         self.label_pontos.pack(padx=15, pady=8)
 
-    def configurar_modo(self, modo_selecionado):
+    def configurar_modo(self, modo_selecionado, dificuldade_selecionada="Médio"):
         self.modo_atual = modo_selecionado
+        self.dificuldade_atual = dificuldade_selecionada # Salva a dificuldade
+        
         self.sistema_pontos = SistemaPontuacao()
         self.pergunta_atual_index = 0
         self.acertos = 0
         self.tempo_total_partida = 0
         
         self.construir_interface_jogo()
+        
+        # Exibe o modo E a dificuldade no título com letras espaçadas!
+        texto_titulo = f"{self.modo_atual.upper()} | {self.dificuldade_atual.upper()}"
+        self.label_titulo_modo.configure(text=" ".join(texto_titulo))
+        
         self.atualizar_textos_rodape()
         self.proxima_pergunta()
 
@@ -198,7 +206,7 @@ class TelaJogo(ctk.CTkFrame):
         self.label_info.configure(text=f"Questão {self.pergunta_atual_index} de {self.max_perguntas}")
         self.barra_progresso.set(self.pergunta_atual_index / self.max_perguntas)
             
-        self.pergunta_atual = GeradorMatematico.gerar(self.modo_atual)
+        self.pergunta_atual = GeradorMatematico.gerar(self.modo_atual, self.dificuldade_atual)
         self.label_pergunta.configure(text=self.pergunta_atual["pergunta"])
         
         self.entrada_resposta.configure(state="normal", border_color="#2A2D3E")
@@ -248,14 +256,13 @@ class TelaJogo(ctk.CTkFrame):
         self.label_combo.configure(text=f"🔥 Combo: {self.sistema_pontos.combo_atual}x", text_color=cor_combo)
 
     
-    # TELA FINAL PREMIUM 
     def finalizar_partida(self):
         # 1. Para os relógios do jogo
         if self.timer_id:
             self.after_cancel(self.timer_id)
             self.timer_id = None
             
-        # 2. Empacota os dados gerados pelo jogador
+        # 2. Empacota os dados para a tela visual
         estatisticas = {
             "modo": self.modo_atual,
             "acertos": self.acertos,
@@ -264,7 +271,18 @@ class TelaJogo(ctk.CTkFrame):
             "pontos": self.sistema_pontos.pontos_totais
         }
         
-        # 3. Envia os dados para a Tela de Resultados e faz a troca
+        # 3. MÁGICA ACONTECENDO: Salva a partida no Banco de Dados!
+        usuario_id = self.master.usuario_logado_id
+        if usuario_id is not None:
+            BancoDeDados.salvar_partida(
+                usuario_id=usuario_id,
+                modo=self.modo_atual,
+                pontos=self.sistema_pontos.pontos_totais,
+                acertos=self.acertos,
+                tempo=self.tempo_total_partida
+            )
+        
+        # 4. Envia os dados para a Tela de Resultados e faz a troca
         tela_resultados = self.master.telas["resultados"]
         tela_resultados.configurar_resultados(estatisticas)
         self.trocar_tela_callback("resultados")

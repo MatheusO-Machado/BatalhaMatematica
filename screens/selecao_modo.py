@@ -43,6 +43,8 @@ class TelaSelecaoModo(ctk.CTkFrame):
         super().__init__(master, fg_color="#0B0C10")
         self.trocar_tela_callback = trocar_tela_callback
         
+        self.dificuldade_atual = "Médio" # Dificuldade Padrão
+        
         # --- CABEÇALHO ---
         frame_topo = ctk.CTkFrame(self, fg_color="transparent")
         frame_topo.pack(fill="x", padx=40, pady=(30, 0))
@@ -52,28 +54,52 @@ class TelaSelecaoModo(ctk.CTkFrame):
         
         ctk.CTkLabel(frame_topo, text="Escolha seu Modo", font=("Arial", 28, "bold"), text_color="#FFFFFF").pack(side="left", padx=20)
 
-        # --- CAIXA CENTRALIZADORA ---
-        # Tudo que entrar aqui vai ficar perfeitamente no meio da tela
+        # --- SELETOR DE DIFICULDADE (O NOVO RECURSO) ---
+        self.frame_dificuldade = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_dificuldade.pack(pady=(20, 10))
+        
+        dificuldades = [("Fácil", "#38B000"), ("Médio", "#FFBE0B"), ("Difícil", "#FF8C00"), ("Extremo", "#D90429")]
+        self.botoes_dif = {}
+        
+        for dif, cor in dificuldades:
+            btn = ctk.CTkButton(
+                self.frame_dificuldade, text=dif.upper(), font=("Arial", 12, "bold"),
+                fg_color=cor if dif == "Médio" else "transparent", 
+                text_color="#12131C" if dif == "Médio" else cor,
+                border_color=cor, border_width=2, width=120, height=35, corner_radius=20,
+                command=lambda d=dif, c=cor: self.mudar_dificuldade(d, c)
+            )
+            btn.pack(side="left", padx=10)
+            self.botoes_dif[dif] = {"widget": btn, "cor": cor}
+
+        # --- CAIXA CENTRALIZADORA E CARTÕES ---
         container_central = ctk.CTkFrame(self, fg_color="transparent")
         container_central.pack(expand=True)
 
-        # --- LINHA 1 (3 Cartões) ---
         linha1 = ctk.CTkFrame(container_central, fg_color="transparent")
         linha1.pack(pady=15)
-        
         CardModo(linha1, "Tabuada", "Multiplicação", "#8A2BE2", "✖", "Fácil", "#38B000", lambda: self.iniciar("Tabuada")).pack(side="left", padx=15)
         CardModo(linha1, "Frações", "Partes do todo", "#00BFFF", "◴", "Médio", "#FFBE0B", lambda: self.iniciar("Frações")).pack(side="left", padx=15)
         CardModo(linha1, "Porcentagem", "Descontos", "#38B000", "%", "Médio", "#FFBE0B", lambda: self.iniciar("Porcentagem")).pack(side="left", padx=15)
 
-        # --- LINHA 2 (2 Cartões) ---
-        # --- LINHA 2 (3 Cartões) ---
         linha2 = ctk.CTkFrame(container_central, fg_color="transparent")
         linha2.pack(pady=15)
-        
         CardModo(linha2, "Regra de Três", "Proporcionalidade", "#FFD700", "⚖️", "Difícil", "#D90429", lambda: self.iniciar("Regra de Três")).pack(side="left", padx=15)
         CardModo(linha2, "Equações", "Valor de X", "#D90429", "⊞", "Difícil", "#D90429", lambda: self.iniciar("Equações")).pack(side="left", padx=15)
         CardModo(linha2, "Desafio Rápido", "Mistura total", "#9D4EDD", "⚡", "Extremo", "#8A2BE2", lambda: self.iniciar("Desafio Rápido")).pack(side="left", padx=15)
 
+    def mudar_dificuldade(self, nova_dif, cor_ativa):
+        """Atualiza a cor dos botões para mostrar qual dificuldade está selecionada"""
+        self.dificuldade_atual = nova_dif
+        for dif, dados in self.botoes_dif.items():
+            btn = dados["widget"]
+            cor_padrao = dados["cor"]
+            if dif == nova_dif:
+                btn.configure(fg_color=cor_ativa, text_color="#12131C") # Acende
+            else:
+                btn.configure(fg_color="transparent", text_color=cor_padrao) # Apaga
+
     def iniciar(self, modo):
-        self.master.telas["jogo"].configurar_modo(modo)
+        # Passa o modo e a dificuldade escolhida para a tela de jogo
+        self.master.telas["jogo"].configurar_modo(modo, self.dificuldade_atual)
         self.trocar_tela_callback("jogo")

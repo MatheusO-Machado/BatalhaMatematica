@@ -1,3 +1,4 @@
+from screens.game import TelaJogo
 import customtkinter as ctk
 
 # Paleta de Cores do GDD
@@ -43,28 +44,6 @@ class TelaMenu(ctk.CTkFrame):
             command=master.destroy
         )
         self.btn_sair.pack(pady=10)
-
-
-class TelaJogo(ctk.CTkFrame):
-    def __init__(self, master, trocar_tela_callback):
-        super().__init__(master, fg_color="transparent")
-        
-        self.label_info = ctk.CTkLabel(
-            self, 
-            text="TELA DE JOGO - MODO TABUADA", 
-            font=("Arial", 24, "bold"),
-            text_color=COR_BRANCO
-        )
-        self.label_info.pack(pady=(100, 20))
-        
-        self.btn_voltar = ctk.CTkButton(
-            self, 
-            text="VOLTAR AO MENU", 
-            fg_color="#D90429", # Vermelho do GDD
-            command=lambda: trocar_tela_callback("menu")
-        )
-        self.btn_voltar.pack(pady=20)
-
 
 class BatalhaMatematicaApp(ctk.CTk):
     def __init__(self):

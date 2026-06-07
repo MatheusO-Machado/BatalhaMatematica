@@ -1,7 +1,6 @@
 import customtkinter as ctk
 import random
 
-# Paleta Dark UI Premium
 COR_FUNDO_APP = "#0A0D14"       
 COR_CARD = "#12151E"            
 COR_BORDAS = "#222738"          
@@ -54,6 +53,7 @@ class TelaMenu(ctk.CTkFrame):
         super().__init__(master, fg_color=COR_FUNDO_APP)
         self.trocar_tela_callback = trocar_tela_callback
 
+        # Aqui o sistema chama a função do fundo que tinha "sumido"
         self.criar_fundo_decorativo()
 
         # --- BOTÃO PERFIL (Topo Direita) ---
@@ -101,17 +101,12 @@ class TelaMenu(ctk.CTkFrame):
         BotaoMenuAnimado(
             frame_botoes, texto="📖 Como Jogar", 
             cor_base="transparent", cor_texto=COR_AMARELO, cor_borda=COR_AMARELO, 
-            command=lambda: self.trocar_tela_callback("como_jogar")
+            command=lambda: self.trocar_tela_callback("manual") 
         ).pack(side="left", padx=10)
+        
+        # O RODAPÉ FOI COMPLETAMENTE REMOVIDO DAQUI, FICOU 100% LIMPO!
 
-        # --- RODAPÉ E ASSINATURA DE DEV ---
-        frame_rodape = ctk.CTkFrame(self, fg_color="transparent")
-        frame_rodape.pack(side="bottom", pady=30)
-
-        ctk.CTkLabel(frame_rodape, text="v1.0", font=("Consolas", 12), text_color=COR_TEXTO_SECUNDARIO).pack(side="left", padx=10)
-        ctk.CTkLabel(frame_rodape, text="|", font=("Arial", 12), text_color=COR_BORDAS).pack(side="left")
-        ctk.CTkLabel(frame_rodape, text="</> Desenvolvido por Matheus", font=("Consolas", 13, "bold"), text_color=COR_TEXTO_SECUNDARIO).pack(side="left", padx=10)
-
+    # --- A FUNÇÃO QUE TINHA SIDO APAGADA VOLTOU PARA CÁ ---
     def criar_fundo_decorativo(self):
         elementos = ["7", "3", "9", "2", "4", "1", "+", "-", "x", "∑", "θ", "√n", "∞", "∫"]
         for _ in range(30): 
@@ -120,6 +115,7 @@ class TelaMenu(ctk.CTkFrame):
             
             pos_x = random.uniform(0.05, 0.95)
             pos_y = random.uniform(0.05, 0.95)
+            # Evita colocar texto em cima dos botões centrais
             if 0.2 < pos_x < 0.8 and 0.2 < pos_y < 0.8:
                 continue 
 

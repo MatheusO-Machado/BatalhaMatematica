@@ -143,7 +143,7 @@ class TelaPerfil(ctk.CTkFrame):
             icone = "🎮"
             if modo == "Tabuada": icone = "✖"
             elif modo == "Frações": icone = "◴"
-            elif modo == "Porcentagem": icone = "↗"
+            elif modo == "Porcentagem": icone = "%"
             elif modo == "Equações": icone = "⊞"
             
             ctk.CTkLabel(row, text=icone, font=("Arial", 20), text_color=COR_ROXO).pack(side="left", padx=20)

@@ -57,11 +57,16 @@ class BancoDeDados:
                 FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
             )
         ''')
+
+        # --- A MÁGICA DA SINCRONIZAÇÃO ACONTECE AQUI ---
+        # Recalcula e corrige o nível de TODOS os usuários cadastrados
+        # com base no XP total toda vez que o jogo for aberto.
+        cursor.execute('UPDATE usuarios SET nivel = (xp_total / 500) + 1')
         
         conn.commit()
         conn.close()
-
-    # --- SISTEMA DE LOGIN E CADASTRO ---
+    
+    # --- SISTEMA DE LOGIN E CADASTRO (Corrigido Case-Sensitive) ---
     @staticmethod
     def cadastrar_usuario(username, senha):
         """Registra um novo usuário. Retorna True se sucesso, False se usuário já existir."""
@@ -69,12 +74,18 @@ class BancoDeDados:
         cursor = conn.cursor()
         senha_criptografada = BancoDeDados._hash_senha(senha)
         
+        # Filtro Inteligente: Verifica se o nome já existe ignorando maiúsculas e minúsculas
+        cursor.execute('SELECT id FROM usuarios WHERE LOWER(username) = LOWER(?)', (username,))
+        if cursor.fetchone():
+            conn.close()
+            return False # Bloqueia o cadastro, pois o usuário já existe
+            
         try:
             cursor.execute('INSERT INTO usuarios (username, senha) VALUES (?, ?)', (username, senha_criptografada))
             conn.commit()
             sucesso = True
         except sqlite3.IntegrityError:
-            sucesso = False # Usuário já existe
+            sucesso = False
         finally:
             conn.close()
             
@@ -87,31 +98,41 @@ class BancoDeDados:
         cursor = conn.cursor()
         senha_criptografada = BancoDeDados._hash_senha(senha)
         
-        cursor.execute('SELECT id FROM usuarios WHERE username = ? AND senha = ?', (username, senha_criptografada))
+        # Permite que o usuário faça login mesmo que digite "matheus" em vez de "Matheus"
+        cursor.execute('SELECT id FROM usuarios WHERE LOWER(username) = LOWER(?) AND senha = ?', (username, senha_criptografada))
         resultado = cursor.fetchone()
         conn.close()
         
         if resultado:
-            return resultado[0] # Retorna o ID do usuário logado
+            return resultado[0]
         return None
 
     # --- SISTEMA DE PARTIDAS E RANKING ---
     @staticmethod
     def salvar_partida(usuario_id, modo, pontos, acertos, tempo):
-        """Salva os dados da partida e adiciona XP ao perfil do jogador."""
+        """Salva os dados da partida e calcula a evolução de Nível."""
         conn = BancoDeDados._conectar()
         cursor = conn.cursor()
         
-        # Salva o histórico da partida
+        # 1. Salva o histórico da partida
         cursor.execute('''
             INSERT INTO partidas (usuario_id, modo, pontos, acertos, tempo) 
             VALUES (?, ?, ?, ?, ?)
         ''', (usuario_id, modo, pontos, acertos, tempo))
         
-        # Atualiza o XP total do usuário (1 ponto = 1 XP)
+        # 2. Resgata o XP atual do banco
+        cursor.execute('SELECT xp_total FROM usuarios WHERE id = ?', (usuario_id,))
+        xp_atual = cursor.fetchone()[0]
+        
+        # 3. Matemática de Gamificação: Atualiza XP e calcula o novo Nível
+        novo_xp = xp_atual + pontos
+        # Fórmula: A cada 500 XP, sobe 1 nível (usando divisão inteira)
+        novo_nivel = (novo_xp // 500) + 1 
+        
+        # 4. Atualiza o perfil do jogador com o novo XP e o novo Nível!
         cursor.execute('''
-            UPDATE usuarios SET xp_total = xp_total + ? WHERE id = ?
-        ''', (pontos, usuario_id))
+            UPDATE usuarios SET xp_total = ?, nivel = ? WHERE id = ?
+        ''', (novo_xp, novo_nivel, usuario_id))
         
         conn.commit()
         conn.close()

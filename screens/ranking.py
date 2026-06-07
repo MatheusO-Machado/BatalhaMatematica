@@ -38,7 +38,7 @@ class TelaRanking(ctk.CTkFrame):
             ("Geral", "🌍 Global"), 
             ("Tabuada", "✖ Tabuada"), 
             ("Frações", "◴ Frações"), 
-            ("Porcentagem", "↗ Porcentagem"), 
+            ("Porcentagem", "% Porcentagem"), 
             ("Regra de Três", "⚖️ Regra de Três"), 
             ("Equações", "⊞ Equações")
         ]

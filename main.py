@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from utils.database import BancoDeDados
+from controllers.database import BancoDeDados
 
 # Importe a nova tela de Login aqui no topo!
 from screens.login import TelaLogin

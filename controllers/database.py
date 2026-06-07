@@ -2,8 +2,8 @@ import sqlite3
 import hashlib
 import os
 
-# Define o nome do arquivo do banco de dados na raiz do projeto
-DB_PATH = "batalha_matematica.db"
+PASTA_DB = "database"
+CAMINHO_DB = os.path.join(PASTA_DB, "batalha_matematica.db")
 
 class BancoDeDados:
     """
@@ -16,6 +16,13 @@ class BancoDeDados:
     """
     
     @staticmethod
+    def _conectar():
+        """Cria a pasta do banco se não existir e retorna a conexão."""
+        if not os.path.exists(PASTA_DB):
+            os.makedirs(PASTA_DB)
+        return sqlite3.connect(CAMINHO_DB)
+
+    @staticmethod
     def _hash_senha(senha):
         """Aplica criptografia SHA-256 na senha para segurança."""
         return hashlib.sha256(senha.encode()).hexdigest()
@@ -23,7 +30,7 @@ class BancoDeDados:
     @staticmethod
     def inicializar_banco():
         """Cria as tabelas no banco de dados caso não existam."""
-        conn = sqlite3.connect(DB_PATH)
+        conn = BancoDeDados._conectar()
         cursor = conn.cursor()
         
         # Tabela 1: Usuários
@@ -58,7 +65,7 @@ class BancoDeDados:
     @staticmethod
     def cadastrar_usuario(username, senha):
         """Registra um novo usuário. Retorna True se sucesso, False se usuário já existir."""
-        conn = sqlite3.connect(DB_PATH)
+        conn = BancoDeDados._conectar()
         cursor = conn.cursor()
         senha_criptografada = BancoDeDados._hash_senha(senha)
         
@@ -76,7 +83,7 @@ class BancoDeDados:
     @staticmethod
     def fazer_login(username, senha):
         """Valida as credenciais. Retorna o ID do usuário se sucesso, ou None."""
-        conn = sqlite3.connect(DB_PATH)
+        conn = BancoDeDados._conectar()
         cursor = conn.cursor()
         senha_criptografada = BancoDeDados._hash_senha(senha)
         
@@ -92,7 +99,7 @@ class BancoDeDados:
     @staticmethod
     def salvar_partida(usuario_id, modo, pontos, acertos, tempo):
         """Salva os dados da partida e adiciona XP ao perfil do jogador."""
-        conn = sqlite3.connect(DB_PATH)
+        conn = BancoDeDados._conectar()
         cursor = conn.cursor()
         
         # Salva o histórico da partida
@@ -112,7 +119,7 @@ class BancoDeDados:
     @staticmethod
     def obter_ranking_geral(limite=10):
         """Retorna os melhores jogadores baseados no XP total."""
-        conn = sqlite3.connect(DB_PATH)
+        conn = BancoDeDados._conectar()
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -129,7 +136,7 @@ class BancoDeDados:
     @staticmethod
     def obter_ranking_modo(modo, limite=10):
         """Retorna as melhores pontuações em um modo específico."""
-        conn = sqlite3.connect(DB_PATH)
+        conn = BancoDeDados._conectar()
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -148,7 +155,7 @@ class BancoDeDados:
     @staticmethod
     def obter_dados_perfil(usuario_id):
         """Retorna o username, xp_total e nível do usuário."""
-        conn = sqlite3.connect(DB_PATH)
+        conn = BancoDeDados._conectar()
         cursor = conn.cursor()
         cursor.execute('SELECT username, xp_total, nivel FROM usuarios WHERE id = ?', (usuario_id,))
         resultado = cursor.fetchone()
@@ -158,7 +165,7 @@ class BancoDeDados:
     @staticmethod
     def obter_estatisticas_conquistas(usuario_id):
         """Calcula dados do histórico para o sistema de medalhas."""
-        conn = sqlite3.connect(DB_PATH)
+        conn = BancoDeDados._conectar()
         cursor = conn.cursor()
         
         # Total de partidas jogadas
@@ -183,7 +190,7 @@ class BancoDeDados:
     @staticmethod
     def obter_historico_recente(usuario_id, limite=5):
         """Busca as últimas partidas jogadas pelo usuário para o Perfil."""
-        conn = sqlite3.connect(DB_PATH)
+        conn = BancoDeDados._conectar()
         cursor = conn.cursor()
         cursor.execute('''
             SELECT modo, pontos, acertos, tempo 

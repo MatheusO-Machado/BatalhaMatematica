@@ -1,8 +1,8 @@
 import customtkinter as ctk
 import random
-from utils.pontuacao import SistemaPontuacao
-from utils.geradores import GeradorMatematico
-from utils.database import BancoDeDados
+from controllers.pontuacao import SistemaPontuacao
+from controllers.geradores import GeradorMatematico
+from controllers.database import BancoDeDados
 
 # Paleta de Cores Premium (Dark Theme)
 COR_FUNDO = "#0B0C10" 
@@ -290,9 +290,20 @@ class TelaJogo(ctk.CTkFrame):
             
             # SAÍDA: Feedback visual Negativo
             self.label_feedback.configure(text=f"INCORRETO! O certo era {resposta_correta}.", text_color=COR_VERMELHO)
-            
+
         self.atualizar_textos_rodape()
         self.after(1500, self.proxima_pergunta)
+
+    def atualizar_textos_rodape(self):
+        """Atualiza os textos do HUD inferior."""
+
+        self.label_combo.configure(
+            text=f"🔥 Combo: {self.sistema_pontos.combo_atual}"
+        )
+
+        self.label_pontos.configure(
+            text=f"⭐ Pontos: {self.sistema_pontos.pontos_totais}"
+        )
     
     def finalizar_partida(self):
         # 1. Para os relógios do jogo

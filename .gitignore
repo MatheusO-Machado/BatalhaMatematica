@@ -1,9 +1,40 @@
-# Banco de Dados SQLite
+# ==========================================
+# IGNORAR ARQUIVOS DO BANCO DE DADOS
+# ==========================================
 *.db
 *.sqlite
 *.sqlite3
-batalha_matematica.db
+database/
 
-# Cache do Python
+# ==========================================
+# IGNORAR CACHE E COMPILAÇÃO DO PYTHON
+# ==========================================
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# ==========================================
+# IGNORAR AMBIENTES VIRTUAIS (MUITO IMPORTANTE)
+# ==========================================
+venv/
+.venv/
+env/
+.env
+
+# ==========================================
+# IGNORAR ARQUIVOS DE IDEs (VS Code, etc.)
+# ==========================================
+.vscode/
+.idea/
+
+# ==========================================
+# IGNORAR ARQUIVOS DE SISTEMA OPERACIONAL
+# ==========================================
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# IGNORAR LOGS
+# ==========================================
+*.log

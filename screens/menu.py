@@ -101,7 +101,7 @@ class TelaMenu(ctk.CTkFrame):
         BotaoMenuAnimado(
             frame_botoes, texto="📖 Como Jogar", 
             cor_base="transparent", cor_texto=COR_AMARELO, cor_borda=COR_AMARELO, 
-            command=lambda: self.trocar_tela_callback("manual") 
+            command=lambda: self.trocar_tela_callback("como_jogar")
         ).pack(side="left", padx=10)
 
         # --- RODAPÉ E ASSINATURA DE DEV ---

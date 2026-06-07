@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from utils.database import BancoDeDados
+from controllers.database import BancoDeDados
 
 # Paleta Dark UI Premium
 COR_FUNDO_APP = "#0A0D14"       

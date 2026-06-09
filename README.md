@@ -410,7 +410,7 @@ flowchart LR
 
 **1.** Clone o repositório:
 ```bash
-git clone https://github.com/SEU-USUARIO/BatalhaMatematica.git
+git clone https://github.com/MatheusO-Machado/BatalhaMatematica.git
 cd BatalhaMatematica
 ```
 

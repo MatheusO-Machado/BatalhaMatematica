@@ -20,18 +20,17 @@
 
 1. [Visão Geral](#-visão-geral)
 2. [Demonstração](#-demonstração)
-3. [Sugestões de Imagens](#-sugestões-de-imagens-para-capturar)
-4. [Fundamentação Matemática](#-fundamentação-matemática-projeto-integrador)
-5. [Funcionalidades](#-funcionalidades)
-6. [Modos de Jogo](#-modos-de-jogo)
-7. [Modo RPG — Jornada do Herói](#️-modo-rpg--jornada-do-herói)
-8. [Sistema de Conquistas](#-sistema-de-conquistas)
-9. [Arquitetura do Software (MVC)](#️-arquitetura-do-software-padrão-mvc)
-10. [Diagramas](#-diagramas)
-11. [Tecnologias](#-tecnologias-utilizadas)
-12. [Como Executar](#-como-baixar-e-executar)
-13. [Estrutura do Projeto](#-estrutura-do-projeto)
-14. [Licença](#️-licença)
+3. [Fundamentação Matemática](#-fundamentação-matemática-projeto-integrador)
+4. [Funcionalidades](#-funcionalidades)
+5. [Modos de Jogo](#-modos-de-jogo)
+6. [Modo RPG — Jornada do Herói](#️-modo-rpg--jornada-do-herói)
+7. [Sistema de Conquistas](#-sistema-de-conquistas)
+8. [Arquitetura do Software (MVC)](#️-arquitetura-do-software-padrão-mvc)
+9. [Diagramas](#-diagramas)
+10. [Tecnologias](#-tecnologias-utilizadas)
+11. [Como Executar](#-como-baixar-e-executar)
+12. [Estrutura do Projeto](#-estrutura-do-projeto)
+13. [Licença](#️-licença)
 
 ---
 
@@ -57,53 +56,27 @@ O diferencial técnico do projeto é que **nenhuma questão é fixa**: todas sã
 
 ## 📸 Demonstração
 
-> As imagens ficam na pasta **`docs/images/`**. Substitua os arquivos abaixo pelos seus prints reais (mantendo os mesmos nomes) e eles aparecerão automaticamente aqui.
+> As imagens ficam na pasta **`docs/imagem/`**. Substitua os arquivos abaixo pelos seus prints reais (mantendo os mesmos nomes) e eles aparecerão automaticamente aqui.
 
 ### Telas principais
 
 | Menu Principal (dashboard animado) | Seleção de Modos e Dificuldade |
 |:--:|:--:|
-| ![Menu Principal](docs/images/menu.png) | ![Seleção de Modos](docs/images/selecao_modo.png) |
+| ![Menu Principal](docs/imagem/menu.png) | ![Seleção de Modos](docs/imagem/selecao_modo.png) |
 
 | Batalha — Modo Clássico (HUD) | Modo RPG — Jornada do Herói |
 |:--:|:--:|
-| ![Gameplay Clássico](docs/images/gameplay.png) | ![Modo RPG](docs/images/rpg.png) |
+| ![Gameplay Clássico](docs/imagem/gameplay.png) | ![Modo RPG](docs/imagem/rpg.png) |
 
 | Ranking Global | Perfil e Conquistas |
 |:--:|:--:|
-| ![Ranking](docs/images/ranking.png) | ![Perfil](docs/images/perfil.png) |
+| ![Ranking](docs/imagem/ranking.png) | ![Perfil](docs/imagem/perfil.png) |
 
 ### Telas complementares
 
 | Login / Cadastro | Tela de Resultados |
 |:--:|:--:|
-| ![Login](docs/images/login.png) | ![Resultados](docs/images/resultados.png) |
-
----
-
-## 🎬 Sugestões de Imagens para Capturar
-
-Para uma documentação completa e profissional, recomenda-se capturar as seguintes telas (use a tecla `PrtSc` ou a ferramenta de captura do sistema). Os nomes sugeridos correspondem aos arquivos já referenciados acima:
-
-| Arquivo sugerido | O que capturar | Dica de captura |
-|------------------|----------------|-----------------|
-| `menu.png` | Menu principal com o dashboard do jogador | Logue com uma conta que já tenha XP/nível para o card de nível aparecer preenchido |
-| `selecao_modo.png` | Grade dos 9 modos com o seletor de dificuldade | Deixe uma dificuldade selecionada (ex.: "Difícil") para mostrar o destaque |
-| `gameplay.png` | Batalha de um modo clássico no meio da ação | Capture com um combo ativo e as barras de vida em cores diferentes (herói verde, inimigo amarelo) |
-| `rpg.png` | Modo RPG, de preferência numa **fase de chefe** | A fase 5, 10 ou 15 mostra o chefe com moldura destacada e HP alto — visual mais impressionante |
-| `rpg_critico.png` | Momento de **dano crítico** no RPG | Acerte 3 seguidas e capture o flash "GOLPE CRÍTICO" e a barra de Fúria cheia |
-| `ranking.png` | Ranking com o pódio preenchido | Crie 3+ contas com pontuações diferentes para o pódio 🥇🥈🥉 ficar completo |
-| `perfil.png` | Perfil com várias conquistas desbloqueadas | Jogue algumas partidas antes para ter conquistas ativas (coloridas) e bloqueadas (cinza) |
-| `login.png` | Tela de login/cadastro | Tela limpa, mostrando o visual de entrada |
-| `resultados.png` | Tela de fim de partida com o rank (👑/🌟/🔥) | Termine uma partida com boa pontuação para exibir um rank alto |
-| `conquista_popup.png` *(opcional)* | Notificação de conquista desbloqueada | Capture no instante em que uma conquista nova aparece |
-| `bestiario.png` *(opcional)* | Vários inimigos diferentes lado a lado | Monte uma colagem mostrando a variedade de sprites do RPG |
-
-**Dicas gerais para prints de qualidade:**
-- Use a janela em tamanho cheio e resolução consistente (ex.: 1100×720) para todas as capturas ficarem uniformes.
-- Salve em **PNG** (melhor qualidade para interfaces, sem perda).
-- Evite capturar dados pessoais reais; use contas de demonstração (ex.: `Heroi`, `Jogador1`).
-- Para GIFs animados (mostrando o combate ou as animações do menu), ferramentas como **ScreenToGif** (Windows) ou **Peek** (Linux) funcionam bem — salve como `docs/images/demo.gif` e referencie com `![Demo](docs/images/demo.gif)`.
+| ![Login](docs/imagem/login.png) | ![Resultados](docs/imagem/resultados.png) |
 
 ---
 
@@ -213,6 +186,7 @@ A Teoria dos Conjuntos garante experiências sem repetição e gerencia o estado
 - Login e cadastro com senhas protegidas por criptografia **SHA-256** (função hash `h: Σ* → {0,1}²⁵⁶`).
 - **Tag única** por jogador (estilo `Nome#1234`) que diferencia usuários de mesmo nome.
 - Banco de dados relacional SQLite criado e migrado automaticamente na primeira execução.
+- **CRUD completo:** o jogador pode **excluir a própria conta** (confirmando a senha), removendo permanentemente todos os seus dados e o nome dos rankings.
 
 ### Gameplay
 - **Geração procedural** de questões — nunca se repetem na mesma partida.
@@ -349,8 +323,8 @@ Motores de processamento — a ponte entre interface e dados.
 | `rpg.py` | Motor de fases, chefes e dano crítico | Funções de progressão, Lógica |
 | `conquistas.py` | Catálogo e verificação de conquistas | Teoria dos Conjuntos, Lógica |
 
-### 🗄️ Model (`/database`)
-Camada de persistência em SQLite, encapsulada em `database.py`, responsável por transações seguras, criptografia de senhas e migração automática de esquema.
+### 🗄️ Model (`controllers/database.py` + `/database`)
+A lógica de persistência fica em `controllers/database.py`, que encapsula todo o acesso ao SQLite: transações seguras, queries, criptografia de senhas (SHA-256), migração automática de esquema e o CRUD completo (incluindo a exclusão de conta). O arquivo físico do banco (`batalha_matematica.db`) é armazenado na pasta `/database`.
 
 **Esquema do banco:**
 - `usuarios` — id, username, tag, senha (hash), xp_total, nivel, rpg_fase_max, data_criacao
@@ -500,14 +474,15 @@ BatalhaMatematica/
 │   └── como_jogar.py            # Manual de regras
 │
 ├── controllers/                 # ⚙️ CONTROLLER (Regras de negócio)
+│   ├── database.py              # Conexão, queries, criptografia e CRUD
 │   ├── geradores.py             # Análise combinatória (questões)
 │   ├── pontuacao.py             # Funções de pontuação e combo
 │   ├── rpg.py                   # Motor de fases, chefes e críticos
 │   └── conquistas.py            # Sistema de conquistas (conjuntos)
 │
-└── database/                    # 🗄️ MODEL (Persistência)
-    ├── database.py              # Conexão, queries e criptografia
-    └── batalha_matematica.db    # Gerado automaticamente
+└── database/                    # 🗄️ Armazenamento (MODEL)
+    ├── .gitkeep                 # Mantém a pasta no Git
+    └── batalha_matematica.db    # Banco SQLite (gerado automaticamente)
 ```
 
 ---

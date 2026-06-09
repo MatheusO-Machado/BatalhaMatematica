@@ -56,27 +56,27 @@ O diferencial técnico do projeto é que **nenhuma questão é fixa**: todas sã
 
 ## 📸 Demonstração
 
-> As imagens ficam na pasta **`docs/imagem/`**. Substitua os arquivos abaixo pelos seus prints reais (mantendo os mesmos nomes) e eles aparecerão automaticamente aqui.
+> As imagens ficam na pasta **`docs/images/`**. Substitua os arquivos abaixo pelos seus prints reais (mantendo os mesmos nomes) e eles aparecerão automaticamente aqui.
 
 ### Telas principais
 
 | Menu Principal (dashboard animado) | Seleção de Modos e Dificuldade |
 |:--:|:--:|
-| ![Menu Principal](docs/imagem/menu.png) | ![Seleção de Modos](docs/imagem/selecao_modo.png) |
+| ![Menu Principal](docs/images/menu.png) | ![Seleção de Modos](docs/images/selecao_modo.png) |
 
 | Batalha — Modo Clássico (HUD) | Modo RPG — Jornada do Herói |
 |:--:|:--:|
-| ![Gameplay Clássico](docs/imagem/gameplay.png) | ![Modo RPG](docs/imagem/rpg.png) |
+| ![Gameplay Clássico](docs/images/gameplay.png) | ![Modo RPG](docs/images/rpg.png) |
 
 | Ranking Global | Perfil e Conquistas |
 |:--:|:--:|
-| ![Ranking](docs/imagem/ranking.png) | ![Perfil](docs/imagem/perfil.png) |
+| ![Ranking](docs/images/ranking.png) | ![Perfil](docs/images/perfil.png) |
 
 ### Telas complementares
 
 | Login / Cadastro | Tela de Resultados |
 |:--:|:--:|
-| ![Login](docs/imagem/login.png) | ![Resultados](docs/imagem/resultados.png) |
+| ![Login](docs/images/login.png) | ![Resultados](docs/images/resultados.png) |
 
 ---
 
@@ -451,7 +451,7 @@ BatalhaMatematica/
 ├── .gitignore                   # Arquivos ignorados pelo Git
 │
 ├── docs/                        # 📸 Documentação e mídia
-│   └── imagem/                  # Prints e GIFs do projeto (usados no README)
+│   └── images/                  # Prints e GIFs do projeto (usados no README)
 │       ├── menu.png
 │       ├── selecao_modo.png
 │       ├── gameplay.png

@@ -1,1 +1,7 @@
+# Dependências do projeto Batalha Matemática
+# Instale tudo com:  pip install -r requirements.txt
+
+# Interface gráfica (única dependência externa).
+# As demais bibliotecas usadas (sqlite3, hashlib, os, random)
+# já vêm embutidas na biblioteca padrão do Python.
 customtkinter>=5.2.0

@@ -97,11 +97,22 @@ class TelaPerfil(ctk.CTkFrame):
         self._mini(grid, "🗺️", stats["rpg_fase_max"],    "Fase RPG", 1, 0)
         self._mini(grid, "χ",  stats["partidas_equacoes"],"Equações", 1, 1)
 
-        ctk.CTkButton(self.col_esq, text="Sair da Conta", font=F_H3,
+        # Botões de conta (sair / excluir) ancorados no rodapé
+        rodape = ctk.CTkFrame(self.col_esq, fg_color="transparent")
+        rodape.pack(side="bottom", fill="x", padx=24, pady=(0, 20))
+
+        ctk.CTkButton(rodape, text="Sair da Conta", font=F_H3,
                      text_color=VERMELHO, fg_color="transparent",
                      hover_color="#1A0808", border_color=VERMELHO, border_width=1,
                      height=44, corner_radius=CORNER,
-                     command=self._logout).pack(side="bottom", fill="x", padx=24, pady=24)
+                     command=self._logout).pack(fill="x", pady=(0, 8))
+
+        # DELETE (CRUD) — exclusão permanente da conta
+        ctk.CTkButton(rodape, text="🗑  Excluir Conta", font=F_SMALL,
+                     text_color=TEXTO2, fg_color="transparent",
+                     hover_color="#1A0808",
+                     height=32, corner_radius=CORNER,
+                     command=self._abrir_exclusao).pack(fill="x")
 
     def _mini(self, master, icone, valor, titulo, r, c):
         f = ctk.CTkFrame(master, fg_color=BG_APP, border_color=BORDA, border_width=1,
@@ -195,3 +206,80 @@ class TelaPerfil(ctk.CTkFrame):
         self.master.usuario_logado_id = None
         self.master.usuario_logado_nome = None
         self.trocar_tela("login")
+
+    # ─── Exclusão de Conta (DELETE) ─────────────────────────────────────────────
+
+    def _abrir_exclusao(self):
+        """
+        Abre um diálogo modal de confirmação para excluir a conta.
+        Exige a senha e avisa que a ação é IRREVERSÍVEL.
+        """
+        uid = getattr(self.master, "usuario_logado_id", None)
+        if not uid:
+            return
+
+        # Overlay escurecido cobrindo a tela toda
+        overlay = ctk.CTkFrame(self, fg_color="#05060A", corner_radius=0)
+        overlay.place(relwidth=1, relheight=1)
+
+        box = ctk.CTkFrame(overlay, fg_color=GLASS_BG, border_color=VERMELHO,
+                           border_width=2, corner_radius=CORNER_L,
+                           width=440, height=360)
+        box.place(relx=0.5, rely=0.5, anchor="center")
+        box.pack_propagate(False)
+        ctk.CTkFrame(box, fg_color=VERMELHO, height=4, corner_radius=2).pack(fill="x")
+
+        ctk.CTkLabel(box, text="⚠️", font=("Segoe UI", 40)).pack(pady=(18, 0))
+        ctk.CTkLabel(box, text="EXCLUIR CONTA", font=F_TITLE,
+                     text_color=VERMELHO).pack()
+        ctk.CTkLabel(
+            box,
+            text="Esta ação é PERMANENTE e NÃO pode ser desfeita.\n"
+                 "Todos os seus dados, conquistas e posições no\n"
+                 "ranking serão apagados para sempre.",
+            font=F_SMALL, text_color=TEXTO2, justify="center"
+        ).pack(pady=(6, 12))
+
+        ctk.CTkLabel(box, text="Digite sua senha para confirmar:",
+                     font=F_SMALL, text_color=TEXTO).pack()
+        entrada_senha = ctk.CTkEntry(
+            box, show="•", width=260, height=42, justify="center",
+            placeholder_text="Senha", fg_color=BG_INPUT,
+            border_color=BORDA, border_width=2, corner_radius=CORNER
+        )
+        entrada_senha.pack(pady=(4, 4))
+        entrada_senha.focus()
+
+        lbl_erro = ctk.CTkLabel(box, text="", font=F_TINY, text_color=VERMELHO)
+        lbl_erro.pack()
+
+        def confirmar():
+            senha = entrada_senha.get().strip()
+            if not senha:
+                lbl_erro.configure(text="Digite sua senha.")
+                return
+            # DELETE só ocorre se a senha conferir (validado no Model)
+            sucesso = BancoDeDados.excluir_conta(uid, senha)
+            if sucesso:
+                overlay.destroy()
+                # Conta apagada → desloga e volta ao login
+                self.master.usuario_logado_id = None
+                self.master.usuario_logado_nome = None
+                self.trocar_tela("login")
+            else:
+                lbl_erro.configure(text="Senha incorreta. Tente novamente.")
+                entrada_senha.delete(0, "end")
+
+        entrada_senha.bind("<Return>", lambda _: confirmar())
+
+        botoes = ctk.CTkFrame(box, fg_color="transparent")
+        botoes.pack(pady=14)
+        ctk.CTkButton(botoes, text="Cancelar", font=F_H3,
+                     fg_color="transparent", hover_color=BG_CARD2,
+                     border_color=BORDA, border_width=1, text_color=TEXTO,
+                     width=130, height=44, corner_radius=CORNER,
+                     command=overlay.destroy).pack(side="left", padx=8)
+        ctk.CTkButton(botoes, text="🗑 Excluir", font=F_H3,
+                     fg_color=VERMELHO, hover_color="#B91C1C", text_color=TEXTO,
+                     width=130, height=44, corner_radius=CORNER,
+                     command=confirmar).pack(side="left", padx=8)

@@ -586,7 +586,7 @@ class TelaRPG(ctk.CTkFrame):
                 uid, fase_alcancada=m.fase_numero,
                 pontos=m.pontos, inimigos_derrotados=m.inimigos_derrotados)
 
-        overlay = ctk.CTkFrame(self, fg_color="#000000DD", corner_radius=0)
+        overlay = ctk.CTkFrame(self, fg_color="#05060A", corner_radius=0)
         overlay.place(relwidth=1, relheight=1)
         box = ctk.CTkFrame(overlay, fg_color=GLASS_BG, border_color=MAGENTA,
                           border_width=2, corner_radius=CORNER_L, width=460, height=360)

@@ -1,40 +1,114 @@
-# ==========================================
-# IGNORAR ARQUIVOS DO BANCO DE DADOS
-# ==========================================
+
+# BANCO DE DADOS 
+
 *.db
 *.sqlite
 *.sqlite3
-database/
+database/*.db
+database/*.sqlite
+database/*.sqlite3
+!database/.gitkeep
 
-# ==========================================
-# IGNORAR CACHE E COMPILAÇÃO DO PYTHON
-# ==========================================
+# CACHE E COMPILAÇÃO DO PYTHON
+
 __pycache__/
+*.py[cod]
+*$py.class
 *.pyc
 *.pyo
 *.pyd
+.Python
+*.so
 
-# ==========================================
-# IGNORAR AMBIENTES VIRTUAIS (MUITO IMPORTANTE)
-# ==========================================
+# AMBIENTES VIRTUAIS (MUITO IMPORTANTE)
+
 venv/
 .venv/
 env/
 .env
+ENV/
+env.bak/
+venv.bak/
+virtualenv/
 
-# ==========================================
-# IGNORAR ARQUIVOS DE IDEs (VS Code, etc.)
-# ==========================================
+# DISTRIBUIÇÃO / EMPACOTAMENTO
+
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+wheels/
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+
+
+# FERRAMENTAS DE TESTE E COBERTURA
+
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.cache/
+nosetests.xml
+coverage.xml
+
+
+# IDEs E EDITORES
+
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.spyderproject
+.spyproject
 
-# ==========================================
-# IGNORAR ARQUIVOS DE SISTEMA OPERACIONAL
-# ==========================================
-.DS_Store
+# JUPYTER / NOTEBOOKS
+
+.ipynb_checkpoints/
+
+# ARQUIVOS DE SISTEMA OPERACIONAL
+
+# Windows
 Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+
+# Linux
+.directory
+.Trash-*
+*~
 
 # ==========================================
-# IGNORAR LOGS
-# ==========================================
+
+# LOGS E ARQUIVOS TEMPORÁRIOS
 *.log
+logs/
+*.bak
+*.tmp
+*.temp
+*.old
+
+# ARQUIVOS DE CONFIGURAÇÃO SENSÍVEIS
+secrets.json
+config.local.py
+*.pem
+*.key

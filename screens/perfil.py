@@ -1,208 +1,197 @@
-import customtkinter as ctk
-from controllers.database import BancoDeDados
+# =============================================================================
+# BATALHA MATEMÁTICA — View: Perfil do Jogador (ATUALIZADO)
+# =============================================================================
+# Exibe avatar, tag única, nível/XP, stats e TODAS as conquistas (incluindo
+# as exclusivas do Modo RPG). Lê conquistas reais do banco de dados.
+# =============================================================================
 
-# Paleta Dark UI Premium
-COR_FUNDO_APP = "#0A0D14"       
-COR_CARD = "#12151E"            
-COR_BORDAS = "#222738"          
-COR_TEXTO_PRINCIPAL = "#FFFFFF" 
-COR_TEXTO_SECUNDARIO = "#7E849E"
-COR_ROXO = "#8A2BE2"
-COR_VERMELHO = "#D90429"
-COR_VERDE = "#38B000"
-COR_AMARELO = "#FFBE0B"
+import customtkinter as ctk
+from controllers.database   import BancoDeDados
+from controllers.conquistas import CATALOGO
+from screens.tema import *
+
 
 class TelaPerfil(ctk.CTkFrame):
+    """Perfil com XP, nível, tag, conquistas e histórico."""
+
     def __init__(self, master, trocar_tela_callback):
-        super().__init__(master, fg_color=COR_FUNDO_APP)
-        self.trocar_tela_callback = trocar_tela_callback
+        super().__init__(master, fg_color=BG_APP)
+        self.trocar_tela = trocar_tela_callback
 
-        self.frame_esq = ctk.CTkFrame(self, fg_color=COR_CARD, border_color=COR_BORDAS, border_width=1, corner_radius=15, width=320)
-        self.frame_esq.pack(side="left", fill="y", padx=20, pady=20)
-        self.frame_esq.pack_propagate(False)
+        self.col_esq = ctk.CTkFrame(self, fg_color=GLASS_BG,
+                                   border_color=GLASS_BORDA, border_width=1,
+                                   corner_radius=0, width=300)
+        self.col_esq.pack(side="left", fill="y")
+        self.col_esq.pack_propagate(False)
 
-        self.scroll_dir = ctk.CTkScrollableFrame(self, fg_color="transparent")
-        self.scroll_dir.pack(side="left", fill="both", expand=True, pady=20, padx=(0, 20))
+        self.col_dir = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.col_dir.pack(side="left", fill="both", expand=True, padx=20, pady=20)
 
     def atualizar_tela(self):
-        for widget in self.frame_esq.winfo_children():
-            widget.destroy()
-        for widget in self.scroll_dir.winfo_children():
-            widget.destroy()
+        for w in self.col_esq.winfo_children(): w.destroy()
+        for w in self.col_dir.winfo_children(): w.destroy()
 
-        usuario_id = self.master.usuario_logado_id
-        
-        if not usuario_id:
-            self.montar_perfil_convidado()
+        uid = getattr(self.master, "usuario_logado_id", None)
+        if not uid:
+            self._convidado()
             return
 
-        dados = BancoDeDados.obter_dados_perfil(usuario_id)
-        stats = BancoDeDados.obter_estatisticas_conquistas(usuario_id)
-        historico = BancoDeDados.obter_historico_recente(usuario_id, 4)
+        dados   = BancoDeDados.obter_dados_perfil(uid)
+        stats   = BancoDeDados.obter_estatisticas_conquistas(uid)
+        hist    = BancoDeDados.obter_historico_recente(uid, 5)
+        obtidas = BancoDeDados.obter_conquistas(uid)   # conjunto de chaves
 
-        username, xp_total, _ = dados
-        
-        xp_por_nivel = 200
-        nivel_atual = (xp_total // xp_por_nivel) + 1
-        xp_atual_no_nivel = xp_total % xp_por_nivel
-        progresso_xp = xp_atual_no_nivel / xp_por_nivel
+        username, tag, xp, nivel, fase_rpg = dados
 
-        self.montar_coluna_esquerda(username, nivel_atual, xp_total, progresso_xp, stats)
-        self.montar_coluna_direita(stats, historico)
+        xp_por_nivel = 500
+        xp_no_nivel  = xp % xp_por_nivel
+        progresso    = xp_no_nivel / xp_por_nivel
 
-    def montar_coluna_esquerda(self, username, nivel, xp_total, progresso_xp, stats):
-        ctk.CTkButton(
-            self.frame_esq, text="← Voltar ao Menu", font=("Arial", 12, "bold"), text_color=COR_TEXTO_SECUNDARIO,
-            fg_color="transparent", hover_color="#1A1D29", anchor="w", command=lambda: self.trocar_tela_callback("menu")
-        ).pack(fill="x", padx=20, pady=(20, 10))
+        self._esquerda(username, tag, nivel, xp, progresso, xp_por_nivel, stats)
+        self._direita(obtidas, hist)
 
-        # Avatar Dinâmico
-        inicial = username[0].upper() if username else "?"
-        
-        container_avatar = ctk.CTkFrame(self.frame_esq, fg_color="transparent")
-        container_avatar.pack(pady=(15, 10))
-        
-        avatar_bg = ctk.CTkFrame(container_avatar, fg_color=COR_ROXO, width=85, height=85, corner_radius=50)
-        avatar_bg.pack()
-        avatar_bg.pack_propagate(False)
-        ctk.CTkLabel(avatar_bg, text=inicial, font=("Arial", 38, "bold"), text_color=COR_TEXTO_PRINCIPAL).place(relx=0.5, rely=0.5, anchor="center")
+    # ─── Coluna esquerda ────────────────────────────────────────────────────────
 
-        # Textos de Identidade Limpos
-        ctk.CTkLabel(self.frame_esq, text=f"NÍVEL {nivel}", font=("Arial", 11, "bold"), text_color=COR_AMARELO).pack()
-        ctk.CTkLabel(self.frame_esq, text=username.upper(), font=("Arial", 22, "bold"), text_color=COR_TEXTO_PRINCIPAL).pack(pady=(2, 20))
+    def _esquerda(self, nome, tag, nivel, xp, progresso, xp_por_nivel, stats):
+        ctk.CTkButton(self.col_esq, text="← Menu", font=F_SMALL, text_color=TEXTO2,
+                     fg_color="transparent", hover_color=BG_CARD2, anchor="w",
+                     height=36, corner_radius=CORNER,
+                     command=lambda: self.trocar_tela("menu")).pack(fill="x", padx=16, pady=(16, 8))
+        ctk.CTkFrame(self.col_esq, fg_color=BORDA, height=1).pack(fill="x", padx=16)
 
-        # Barra de XP
-        frame_xp = ctk.CTkFrame(self.frame_esq, fg_color="transparent")
-        frame_xp.pack(fill="x", padx=30, pady=(0, 10))
-        
-        ctk.CTkLabel(frame_xp, text="XP", font=("Arial", 10, "bold"), text_color=COR_TEXTO_SECUNDARIO).pack(side="left")
-        ctk.CTkLabel(frame_xp, text=f"{xp_total} / {((xp_total // 200) + 1) * 200}", font=("Arial", 10, "bold"), text_color=COR_TEXTO_SECUNDARIO).pack(side="right")
-        
-        barra_xp = ctk.CTkProgressBar(self.frame_esq, height=8, fg_color=COR_BORDAS, progress_color=COR_ROXO)
-        barra_xp.pack(fill="x", padx=30)
-        barra_xp.set(progresso_xp)
+        # Avatar
+        cont = ctk.CTkFrame(self.col_esq, fg_color="transparent")
+        cont.pack(pady=(20, 8))
+        av = ctk.CTkFrame(cont, fg_color=ROXO, width=88, height=88, corner_radius=44)
+        av.pack(); av.pack_propagate(False)
+        ctk.CTkLabel(av, text=(nome[0].upper() if nome else "?"),
+                     font=("Segoe UI Black", 40, "bold"),
+                     text_color=TEXTO).place(relx=0.5, rely=0.5, anchor="center")
 
-        # Grid de Estatísticas (Caixas Ajustadas)
-        grid_stats = ctk.CTkFrame(self.frame_esq, fg_color="transparent")
-        grid_stats.pack(fill="x", padx=15, pady=30)
-        
-        self.criar_mini_stat(grid_stats, "🏆", stats["total_partidas"], "Partidas", 0, 0)
-        self.criar_mini_stat(grid_stats, "⭐", stats["maior_pontuacao"], "Maior Pont.", 0, 1)
-        self.criar_mini_stat(grid_stats, "⊞", stats["partidas_equacoes"], "Equações", 1, 0)
-        self.criar_mini_stat(grid_stats, "🔥", "Ativo", "Status", 1, 1)
+        ctk.CTkLabel(self.col_esq, text=f"NÍVEL {nivel}", font=F_TINY,
+                     text_color=AMARELO).pack()
+        # Nome + tag
+        linha = ctk.CTkFrame(self.col_esq, fg_color="transparent")
+        linha.pack(pady=(2, 16))
+        ctk.CTkLabel(linha, text=nome.upper(), font=F_H1, text_color=TEXTO).pack(side="left")
+        ctk.CTkLabel(linha, text=f"#{tag}", font=F_SMALL,
+                     text_color=TEXTO2).pack(side="left", padx=(4, 0), pady=(6, 0))
 
-        # Botão Sair
-        self.btn_sair = ctk.CTkButton(
-            self.frame_esq, text="Sair da Conta", font=("Arial", 14, "bold"), text_color=COR_VERMELHO,
-            fg_color="transparent", border_color=COR_VERMELHO, border_width=1, hover_color="#2A0808", height=45,
-            command=self.fazer_logout
-        )
-        self.btn_sair.pack(side="bottom", fill="x", padx=30, pady=30)
+        # Barra XP
+        fxp = ctk.CTkFrame(self.col_esq, fg_color="transparent")
+        fxp.pack(fill="x", padx=28, pady=(0, 4))
+        ctk.CTkLabel(fxp, text="XP", font=F_TINY, text_color=TEXTO2).pack(side="left")
+        ctk.CTkLabel(fxp, text=f"{xp % xp_por_nivel} / {xp_por_nivel}",
+                     font=F_TINY, text_color=TEXTO2).pack(side="right")
+        barra = ctk.CTkProgressBar(self.col_esq, height=8, fg_color=BORDA,
+                                  progress_color=ROXO)
+        barra.pack(fill="x", padx=28); barra.set(progresso)
 
-    def criar_mini_stat(self, master, icone, valor, titulo, linha, coluna):
-        # Aumentei a largura para 135 e a altura para 95 para evitar cortes
-        frame = ctk.CTkFrame(master, fg_color="#0A0D14", border_color=COR_BORDAS, border_width=1, corner_radius=10, width=135, height=95)
-        frame.grid(row=linha, column=coluna, padx=7, pady=7)
-        frame.pack_propagate(False)
-        
-        # O ícone agora tem a cor roxa do tema para dar contraste
-        ctk.CTkLabel(frame, text=icone, font=("Arial", 22), text_color=COR_ROXO).pack(pady=(12, 2))
-        ctk.CTkLabel(frame, text=f"{valor}", font=("Arial", 16, "bold"), text_color=COR_TEXTO_PRINCIPAL).pack(pady=0)
-        ctk.CTkLabel(frame, text=titulo, font=("Arial", 10), text_color=COR_TEXTO_SECUNDARIO).pack()
+        ctk.CTkFrame(self.col_esq, fg_color=BORDA, height=1).pack(fill="x", padx=20, pady=20)
 
-    def montar_coluna_direita(self, stats, historico):
-        ctk.CTkLabel(self.scroll_dir, text="Conquistas", font=("Arial", 18, "bold"), text_color=COR_TEXTO_PRINCIPAL).pack(anchor="w", pady=(0, 10))
-        
-        frame_conquistas = ctk.CTkFrame(self.scroll_dir, fg_color="transparent")
-        frame_conquistas.pack(fill="x", pady=(0, 30))
+        # Mini-stats
+        grid = ctk.CTkFrame(self.col_esq, fg_color="transparent")
+        grid.pack(fill="x", padx=14)
+        self._mini(grid, "🏆", stats["total_partidas"], "Partidas", 0, 0)
+        self._mini(grid, "⭐", stats["maior_pontuacao"], "Recorde",  0, 1)
+        self._mini(grid, "🗺️", stats["rpg_fase_max"],    "Fase RPG", 1, 0)
+        self._mini(grid, "χ",  stats["partidas_equacoes"],"Equações", 1, 1)
 
-        lista_conquistas = [
-            {"titulo": "Pioneiro", "desc": "1ª partida", "cond": stats["total_partidas"] >= 1, "icone": "🌱"},
-            {"titulo": "Veterano", "desc": "10 partidas", "cond": stats["total_partidas"] >= 10, "icone": "⚔️"},
-            {"titulo": "Mestre", "desc": "+150 pts", "cond": stats["maior_pontuacao"] >= 150, "icone": "👑"},
-            {"titulo": "X-Hunter", "desc": "5 Equações", "cond": stats["partidas_equacoes"] >= 5, "icone": "⊞"}
-        ]
+        ctk.CTkButton(self.col_esq, text="Sair da Conta", font=F_H3,
+                     text_color=VERMELHO, fg_color="transparent",
+                     hover_color="#1A0808", border_color=VERMELHO, border_width=1,
+                     height=44, corner_radius=CORNER,
+                     command=self._logout).pack(side="bottom", fill="x", padx=24, pady=24)
 
-        for i, conq in enumerate(lista_conquistas):
-            self.criar_card_conquista(frame_conquistas, conq, linha=i//2, coluna=i%2)
+    def _mini(self, master, icone, valor, titulo, r, c):
+        f = ctk.CTkFrame(master, fg_color=BG_APP, border_color=BORDA, border_width=1,
+                        corner_radius=CORNER, width=126, height=88)
+        f.grid(row=r, column=c, padx=6, pady=6); f.pack_propagate(False)
+        ctk.CTkLabel(f, text=icone, font=("Segoe UI", 22), text_color=ROXO).pack(pady=(12, 2))
+        ctk.CTkLabel(f, text=str(valor), font=F_H2, text_color=TEXTO).pack()
+        ctk.CTkLabel(f, text=titulo, font=F_TINY, text_color=TEXTO2).pack()
 
-        ctk.CTkLabel(self.scroll_dir, text="Partidas Recentes", font=("Arial", 18, "bold"), text_color=COR_TEXTO_PRINCIPAL).pack(anchor="w", pady=(0, 10))
-        
-        if not historico:
-            ctk.CTkLabel(self.scroll_dir, text="Nenhuma partida jogada ainda.", text_color=COR_TEXTO_SECUNDARIO).pack(anchor="w", pady=10)
+    # ─── Coluna direita ─────────────────────────────────────────────────────────
+
+    def _direita(self, obtidas: set, hist):
+        # Conquistas — separadas em Gerais e Exclusivas do RPG
+        ctk.CTkLabel(self.col_dir, text="🏅  Conquistas", font=F_H1,
+                     text_color=TEXTO).pack(anchor="w", pady=(0, 4))
+        total = len(obtidas)
+        ctk.CTkLabel(self.col_dir, text=f"{total} de {len(CATALOGO)} desbloqueadas",
+                     font=F_SMALL, text_color=TEXTO2).pack(anchor="w", pady=(0, 12))
+
+        # Gerais
+        ctk.CTkLabel(self.col_dir, text="Gerais", font=F_H3,
+                     text_color=AZUL).pack(anchor="w", pady=(0, 6))
+        grid_g = ctk.CTkFrame(self.col_dir, fg_color="transparent")
+        grid_g.pack(fill="x", pady=(0, 16))
+        gerais = [(k, v) for k, v in CATALOGO.items() if not v["rpg"]]
+        for i, (chave, c) in enumerate(gerais):
+            self._card_conq(grid_g, chave, c, chave in obtidas, i % 2, i // 2)
+
+        # Exclusivas RPG
+        ctk.CTkLabel(self.col_dir, text="🗺️ Exclusivas do Modo RPG", font=F_H3,
+                     text_color=MAGENTA).pack(anchor="w", pady=(0, 6))
+        grid_r = ctk.CTkFrame(self.col_dir, fg_color="transparent")
+        grid_r.pack(fill="x", pady=(0, 16))
+        rpgs = [(k, v) for k, v in CATALOGO.items() if v["rpg"]]
+        for i, (chave, c) in enumerate(rpgs):
+            self._card_conq(grid_r, chave, c, chave in obtidas, i % 2, i // 2, rpg=True)
+
+        # Histórico
+        ctk.CTkLabel(self.col_dir, text="📜  Partidas Recentes", font=F_H1,
+                     text_color=TEXTO).pack(anchor="w", pady=(8, 10))
+        if not hist:
+            ctk.CTkLabel(self.col_dir, text="Nenhuma partida ainda. Entre em batalha!",
+                         font=F_BODY, text_color=TEXTO2).pack(anchor="w")
             return
-
-        for partida in historico:
-            modo, pontos, acertos, tempo = partida
-            taxa_acerto = int((acertos / 10) * 100) 
-            
-            row = ctk.CTkFrame(self.scroll_dir, fg_color=COR_CARD, border_color=COR_BORDAS, border_width=1, corner_radius=10, height=60)
-            row.pack(fill="x", pady=5)
-            row.pack_propagate(False)
-            
-            icone = "🎮"
-            if modo == "Tabuada": icone = "✖"
-            elif modo == "Frações": icone = "◴"
-            elif modo == "Porcentagem": icone = "%"
-            elif modo == "Equações": icone = "⊞"
-            
-            ctk.CTkLabel(row, text=icone, font=("Arial", 20), text_color=COR_ROXO).pack(side="left", padx=20)
-            
+        for modo, pontos, acertos, tempo in hist:
+            row = ctk.CTkFrame(self.col_dir, fg_color=BG_CARD, border_color=BORDA,
+                             border_width=1, corner_radius=CORNER, height=56)
+            row.pack(fill="x", pady=4); row.pack_propagate(False)
+            cor = CORES_MODO.get(modo, ROXO)
+            ctk.CTkLabel(row, text=ICONES_MODO.get(modo, "🎮"), font=("Segoe UI", 22),
+                         text_color=cor).pack(side="left", padx=16)
             info = ctk.CTkFrame(row, fg_color="transparent")
-            info.pack(side="left")
-            ctk.CTkLabel(info, text=modo, font=("Arial", 14, "bold"), text_color=COR_TEXTO_PRINCIPAL, anchor="w").pack(fill="x")
-            ctk.CTkLabel(info, text=f"⏱ {tempo}s", font=("Arial", 11), text_color=COR_TEXTO_SECUNDARIO, anchor="w").pack(fill="x")
+            info.pack(side="left", fill="y", pady=8)
+            ctk.CTkLabel(info, text=modo, font=F_H3, text_color=TEXTO, anchor="w").pack(fill="x")
+            ctk.CTkLabel(info, text=f"⏱ {tempo}s", font=F_TINY, text_color=TEXTO2, anchor="w").pack(fill="x")
+            ctk.CTkLabel(row, text=f"{pontos:,} pts", font=F_H3,
+                         text_color=AMARELO).pack(side="right", padx=18)
 
-            stats_box = ctk.CTkFrame(row, fg_color="transparent")
-            stats_box.pack(side="right", padx=20)
-            ctk.CTkLabel(stats_box, text=f"{pontos} pts", font=("Arial", 14, "bold"), text_color=COR_TEXTO_PRINCIPAL, anchor="e").pack(fill="x")
-            ctk.CTkLabel(stats_box, text=f"Precisão: {taxa_acerto}%", font=("Arial", 11), text_color=COR_VERDE if taxa_acerto >= 70 else COR_AMARELO, anchor="e").pack(fill="x")
+    def _card_conq(self, master, chave, dados, ativo, col, linha, rpg=False):
+        cor_b = (MAGENTA if rpg else ROXO) if ativo else BORDA
+        bg    = BG_CARD if ativo else BG_APP
+        ct    = TEXTO if ativo else TEXTO2
+        card = ctk.CTkFrame(master, fg_color=bg, border_color=cor_b, border_width=1,
+                          corner_radius=CORNER, width=250, height=64)
+        card.grid(row=linha, column=col, padx=6, pady=6); card.pack_propagate(False)
+        ctk.CTkLabel(card, text=dados["icone"], font=("Segoe UI", 24),
+                     text_color=(AMARELO if ativo else TEXTO3)).pack(side="left", padx=12)
+        txt = ctk.CTkFrame(card, fg_color="transparent")
+        txt.pack(side="left", fill="both", expand=True, pady=8)
+        ctk.CTkLabel(txt, text=dados["titulo"], font=F_H3, text_color=ct, anchor="w").pack(fill="x")
+        ctk.CTkLabel(txt, text=dados["desc"], font=F_TINY, text_color=TEXTO2,
+                     anchor="w", wraplength=160, justify="left").pack(fill="x")
+        if ativo:
+            ctk.CTkLabel(card, text="✓", font=F_H2, text_color=VERDE).pack(side="right", padx=10)
+        else:
+            ctk.CTkLabel(card, text="🔒", font=F_BODY, text_color=TEXTO3).pack(side="right", padx=12)
 
-    def criar_card_conquista(self, master, dados, linha, coluna):
-        ativo = dados["cond"]
-        cor_fundo = COR_CARD if ativo else "#0D0F15"
-        cor_borda = COR_ROXO if ativo else COR_BORDAS
-        cor_texto = COR_TEXTO_PRINCIPAL if ativo else COR_TEXTO_SECUNDARIO
-        
-        card = ctk.CTkFrame(master, fg_color=cor_fundo, border_color=cor_borda, border_width=1, corner_radius=10, width=280, height=70)
-        card.grid(row=linha, column=coluna, padx=10, pady=10)
-        card.pack_propagate(False)
-        
-        ctk.CTkLabel(card, text=dados["icone"], font=("Arial", 24), text_color=COR_AMARELO if ativo else COR_TEXTO_SECUNDARIO).pack(side="left", padx=15)
-        
-        textos = ctk.CTkFrame(card, fg_color="transparent")
-        textos.pack(side="left", fill="both", expand=True, pady=10)
-        
-        ctk.CTkLabel(textos, text=dados["titulo"], font=("Arial", 13, "bold"), text_color=cor_texto, anchor="w").pack(fill="x")
-        ctk.CTkLabel(textos, text=dados["desc"], font=("Arial", 11), text_color=COR_TEXTO_SECUNDARIO, anchor="w").pack(fill="x")
+    # ─── Convidado / Logout ───────────────────────────────────────────────────
 
-    def fazer_logout(self):
+    def _convidado(self):
+        ctk.CTkButton(self.col_esq, text="← Menu", font=F_SMALL, text_color=TEXTO2,
+                     fg_color="transparent", hover_color=BG_CARD2, anchor="w",
+                     height=36, corner_radius=CORNER,
+                     command=lambda: self.trocar_tela("menu")).pack(fill="x", padx=16, pady=(16, 8))
+        ctk.CTkLabel(self.col_esq, text="👻", font=("Segoe UI", 52)).pack(pady=(30, 8))
+        ctk.CTkLabel(self.col_esq, text="CONVIDADO", font=F_H1, text_color=TEXTO).pack()
+        ctk.CTkLabel(self.col_dir, text="Faça login para ver seu perfil.",
+                     font=F_H3, text_color=TEXTO2).pack(pady=100)
+
+    def _logout(self):
         self.master.usuario_logado_id = None
         self.master.usuario_logado_nome = None
-        self.trocar_tela_callback("login")
-
-    def montar_perfil_convidado(self):
-        ctk.CTkButton(
-            self.frame_esq, text="← Voltar ao Menu", font=("Arial", 12, "bold"), text_color=COR_TEXTO_SECUNDARIO,
-            fg_color="transparent", hover_color="#1A1D29", anchor="w", command=lambda: self.trocar_tela_callback("menu")
-        ).pack(fill="x", padx=20, pady=(20, 10))
-
-        container_avatar = ctk.CTkFrame(self.frame_esq, fg_color="transparent")
-        container_avatar.pack(pady=(20, 10))
-        avatar_bg = ctk.CTkFrame(container_avatar, fg_color="#1A1D29", width=85, height=85, corner_radius=50)
-        avatar_bg.pack()
-        avatar_bg.pack_propagate(False)
-        ctk.CTkLabel(avatar_bg, text="👻", font=("Arial", 38)).place(relx=0.5, rely=0.5, anchor="center")
-
-        ctk.CTkLabel(self.frame_esq, text="CONVIDADO", font=("Arial", 22, "bold"), text_color=COR_TEXTO_PRINCIPAL).pack(pady=(10, 0))
-        ctk.CTkLabel(self.frame_esq, text="Modo Offline", font=("Arial", 12), text_color=COR_TEXTO_SECUNDARIO).pack()
-
-        ctk.CTkLabel(self.scroll_dir, text="Modo Convidado Ativo", font=("Arial", 24, "bold"), text_color=COR_TEXTO_PRINCIPAL).pack(pady=(100, 10))
-        ctk.CTkLabel(self.scroll_dir, text="Crie uma conta para registrar seu progresso,\nsubir de nível e desbloquear conquistas!", font=("Arial", 14), text_color=COR_TEXTO_SECUNDARIO).pack()
-
-        self.btn_sair = ctk.CTkButton(
-            self.frame_esq, text="Sair / Criar Conta", font=("Arial", 14, "bold"), text_color=COR_VERMELHO,
-            fg_color="transparent", border_color=COR_VERMELHO, border_width=1, hover_color="#2A0808", height=45,
-            command=self.fazer_logout
-        )
-        self.btn_sair.pack(side="bottom", fill="x", padx=30, pady=30)
+        self.trocar_tela("login")

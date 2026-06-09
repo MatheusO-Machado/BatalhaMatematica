@@ -1,70 +1,160 @@
 import customtkinter as ctk
+from screens.tema import *
 
-COR_FUNDO = "#0B0C10"
-COR_ROXO = "#8A2BE2"
-COR_BRANCO = "#FFFFFF"
-COR_CINZA = "#A0A0A0"
-COR_AMARELO = "#FFBE0B"
-COR_VERDE = "#38B000"
-COR_VERMELHO = "#D90429"
 
 class TelaComoJogar(ctk.CTkFrame):
+    """Tela de manual com seções explicativas em cards rolável."""
+
     def __init__(self, master, trocar_tela_callback):
-        super().__init__(master, fg_color=COR_FUNDO)
-        self.trocar_tela_callback = trocar_tela_callback
+        super().__init__(master, fg_color=BG_APP)
+        self.trocar_tela = trocar_tela_callback
+        self._construir()
 
-        # --- CABEÇALHO ---
-        frame_topo = ctk.CTkFrame(self, fg_color="transparent")
-        frame_topo.pack(fill="x", padx=40, pady=(30, 10))
+    def _construir(self):
+        # ── Cabeçalho ─────────────────────────────────────────────────────────
+        topo = ctk.CTkFrame(self, fg_color="transparent")
+        topo.pack(fill="x", padx=36, pady=(26, 10))
 
-        btn_voltar = ctk.CTkButton(
-            frame_topo, text="←", font=("Arial", 24, "bold"), width=40, height=40,
-            fg_color="transparent", hover_color="#1E1E2E", command=lambda: trocar_tela_callback("menu")
-        )
-        btn_voltar.pack(side="left")
+        ctk.CTkButton(
+            topo, text="←", font=("Segoe UI Black", 22),
+            fg_color="transparent", hover_color=BG_CARD,
+            text_color=TEXTO2, width=40, height=40, corner_radius=CORNER,
+            command=lambda: self.trocar_tela("menu")
+        ).pack(side="left")
 
-        texto_titulo = " ".join("COMO JOGAR")
-        ctk.CTkLabel(frame_topo, text=texto_titulo, font=("Arial", 28, "bold"), text_color=COR_BRANCO).pack(side="left", padx=20)
+        ctk.CTkLabel(topo, text="📖  COMO JOGAR",
+                     font=F_TITLE, text_color=TEXTO).pack(side="left", padx=16)
 
-        # --- CONTAINER DE REGRAS (Rolável) ---
-        self.scroll_container = ctk.CTkScrollableFrame(self, fg_color="transparent", width=800, height=450)
-        self.scroll_container.pack(padx=40, pady=10, fill="both", expand=True)
+        # ── Conteúdo rolável ──────────────────────────────────────────────────
+        scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=36, pady=(0, 20))
 
-        # Criando as seções explicativas
-        self.criar_secao(
-            "🎯 Objetivo do Jogo", 
-            "Resolva o máximo de questões matemáticas antes do tempo acabar. Quanto mais rápido você responder corretamente, mais pontos você ganha na partida!", 
-            COR_ROXO
-        )
-        
-        self.criar_secao(
-            "🔥 Sistema de Combos", 
-            "Acerte 3 questões seguidas para ativar o Fogo do Combo! Enquanto o combo estiver ativo, todos os seus pontos serão multiplicados. Se errar ou o tempo acabar, o combo zera.", 
-            COR_AMARELO
-        )
-        
-        self.criar_secao(
-            "⏱️ O Relógio", 
-            "Você tem 30 segundos por questão. Quando restarem apenas 5 segundos, o cronômetro ficará vermelho. Se o tempo esgotar, a questão é considerada errada.", 
-            COR_VERMELHO
-        )
-        
-        self.criar_secao(
-            "📈 XP e Progressão", 
-            "Cada ponto conquistado nas partidas é convertido em XP (Experiência) para o seu Perfil. Acumule XP para subir de nível e jogue bastante para desbloquear as Medalhas de Conquista.", 
-            COR_VERDE
-        )
-        
-        self.criar_secao(
-            "⚙️ Dificuldades", 
-            "• Fácil: Cálculos básicos para relaxar.\n• Médio: O desafio padrão.\n• Difícil: Números maiores e cálculos de cabeça complexos.\n• Extremo: Modo insano. Apenas para os verdadeiros mestres da matemática.", 
-            COR_CINZA
-        )
+        secoes = [
+            (
+                "⚔️  Objetivo da Batalha",
+                ROXO,
+                [
+                    "Você é um Herói enfrentando Monstros Matemáticos!",
+                    "Resolva cálculos para atacar o inimigo — cada acerto causa 10 HP de dano.",
+                    "Se errar ou o tempo acabar, você leva 5–10 HP de dano.",
+                    "Sobreviva às 10 rodadas e maximize sua pontuação!",
+                ]
+            ),
+            (
+                "⏱️  Tempo e Pressão",
+                CIANO,
+                [
+                    "Cada questão tem 30 segundos de limite.",
+                    "Quanto mais rápido responder, maior o Bônus de Velocidade nos pontos.",
+                    "Quando restam 10s, o timer fica amarelo. Abaixo de 5s, vermelho!",
+                    "Tempo esgotado = −5 HP no Herói e combo zerado.",
+                ]
+            ),
+            (
+                "🔥  Sistema de Combo",
+                LARANJA,
+                [
+                    "Acertos consecutivos ativam o multiplicador de Combo.",
+                    "Combo × 0.1 é somado ao multiplicador a cada acerto seguido.",
+                    "Exemplo: 5 acertos seguidos → multiplicador de 1.5× (50% a mais de pontos).",
+                    "Errar ou deixar o tempo acabar zera o combo imediatamente.",
+                    "Combo ≥ 5: cura automática de +5 HP no Herói!",
+                ]
+            ),
+            (
+                "📊  Sistema de Pontuação",
+                AMARELO,
+                [
+                    "Pontos Base: 50 por questão correta.",
+                    "Bônus de Velocidade: (30 − tempo_gasto) × 2 pts.",
+                    "Multiplicador de Combo: 1.0 + (combo × 0.1).",
+                    "Multiplicador de Dificuldade: Fácil ×1.0 | Médio ×1.5 | Difícil ×2.0 | Extremo ×3.0.",
+                    "Fórmula: pts = int((50 + bônus_velocidade) × mult_combo × mult_dificuldade)",
+                ]
+            ),
+            (
+                "⚙️  Dificuldades",
+                VERDE,
+                [
+                    "🟢 Fácil   — operandos de 1 a 5. Ideal para iniciantes.",
+                    "🟡 Médio   — operandos de 2 a 12. O desafio padrão.",
+                    "🟠 Difícil — operandos de 5 a 25. Calcule rápido!",
+                    "🔴 Extremo — operandos de 15 a 99. Apenas para mestres da aritmética.",
+                ]
+            ),
+            (
+                "🗺️  Modo RPG — Jornada do Herói (NOVO!)",
+                "#E040FB",
+                [
+                    "Desbloqueado ao atingir o NÍVEL 10!",
+                    "Enfrente fases progressivas de dificuldade GRADUAL e infinita.",
+                    "A cada 5 fases você encontra um CHEFE poderoso (mais HP e XP).",
+                    "Mistura TODOS os modos: adição, subtração, tabuada, frações, %, equações e regra de três.",
+                    "Cada acerto causa dano; cada erro fere o Herói. Sobreviva o máximo de fases!",
+                    "Concede CONQUISTAS EXCLUSIVAS que só existem neste modo (🗺️ 🛡️ 🏆 💎 🌟).",
+                    "Ao vencer um chefe, você recupera 15 HP e ganha XP triplo.",
+                    "⚡ CRÍTICO DO HERÓI: acerte 3 perguntas seguidas e seu próximo golpe causa DANO DOBRADO!",
+                    "💢 CONTRA-ATAQUE: errar 3 ou mais vezes seguidas faz o inimigo desferir um golpe crítico (pior contra chefes e dificuldades altas).",
+                    "Observe a barra de FÚRIA (herói) e o medidor de PERIGO (inimigo) para se planejar.",
+                ]
+            ),
+            (
+                "🎮  Modos de Batalha",
+                AZUL,
+                [
+                    "➕  Adição        — some 2 ou 3 parcelas conforme a dificuldade.",
+                    "➖  Subtração     — diferença entre valores (sempre positiva).",
+                    "✖  Tabuada       — multiplicações puras. Velocidade é tudo.",
+                    "◴  Frações       — divisões exatas. Sem decimais.",
+                    "↗  Porcentagem   — cálculo de % de um valor.",
+                    "⚖️  Regra de Três — proporcionalidade direta.",
+                    "χ  Equações      — equações do 1° grau (ax + b = c).",
+                    "⚡  Desafio Rápido— sorteia modos aleatoriamente!",
+                ]
+            ),
+            (
+                "🧮  A Matemática por Trás do Jogo",
+                ROXO,
+                [
+                    "• LÓGICA BOOLEANA: cada resposta avalia uma proposição V/F que controla dano e pontos.",
+                    "• ANÁLISE COMBINATÓRIA: questões geradas por permutação aleatória de operandos.",
+                    "• TEORIA DOS CONJUNTOS: um set() impede repetição de questões na mesma partida.",
+                    "• FUNÇÕES MATEMÁTICAS: pontuação = função composta de base, velocidade, combo e dificuldade.",
+                    "• FUNÇÃO ESCADA (XP): nivel = floor(xp / 500) + 1 — sobe 1 nível a cada 500 XP.",
+                ]
+            ),
+            (
+                "💡  Dicas de Campeão",
+                AMARELO,
+                [
+                    "Responda rápido nos primeiros segundos para maximizar o Bônus de Velocidade.",
+                    "Mantenha o combo ativo — 5 acertos seguidos curam você e triplicam os pontos!",
+                    "No modo Extremo, prefira velocidade a perfeição: combo compensa erros esporádicos.",
+                    "O Rank 👑 LENDÁRIO exige 90%+ de acertos E mais de 5 questões corretas.",
+                ]
+            ),
+        ]
 
-    def criar_secao(self, titulo, texto, cor_destaque):
-        """Cria um card estilizado para cada regra do jogo"""
-        frame = ctk.CTkFrame(self.scroll_container, fg_color="#12131C", border_color="#1A1C29", border_width=2, corner_radius=15)
-        frame.pack(fill="x", pady=10, ipady=10)
+        for titulo, cor, itens in secoes:
+            self._secao(scroll, titulo, cor, itens)
 
-        ctk.CTkLabel(frame, text=titulo, font=("Arial", 20, "bold"), text_color=cor_destaque).pack(anchor="w", padx=25, pady=(20, 5))
-        ctk.CTkLabel(frame, text=texto, font=("Arial", 14), text_color=COR_BRANCO, justify="left", wraplength=700).pack(anchor="w", padx=25, pady=(0, 20))
+    def _secao(self, pai, titulo: str, cor: str, itens: list[str]):
+        """Cria um card de seção do manual."""
+        card = ctk.CTkFrame(pai, fg_color=BG_CARD,
+                             border_color=BORDA, border_width=1,
+                             corner_radius=CORNER_L)
+        card.pack(fill="x", pady=8)
+
+        # Linha neon no topo
+        ctk.CTkFrame(card, fg_color=cor, height=3, corner_radius=2).pack(fill="x")
+
+        ctk.CTkLabel(card, text=titulo, font=F_H2,
+                     text_color=cor).pack(anchor="w", padx=22, pady=(16, 8))
+
+        for item in itens:
+            ctk.CTkLabel(card, text=f"  {item}",
+                         font=F_BODY, text_color=TEXTO,
+                         anchor="w", justify="left",
+                         wraplength=820).pack(anchor="w", padx=22, pady=2)
+
+        ctk.CTkFrame(card, fg_color="transparent", height=12).pack()

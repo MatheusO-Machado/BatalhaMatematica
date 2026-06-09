@@ -1,361 +1,740 @@
+# =============================================================================
+# BATALHA MATEMÁTICA — View: Tela de Jogo (HUD de Batalha RPG)
+# =============================================================================
+# A tela mais complexa do projeto. Gerencia:
+#   - Loop de partida com 10 questões
+#   - Temporizador regressivo de 30s por questão
+#   - HUD de HP do Herói e do Inimigo (barras de vida estilo RPG)
+#   - Efeitos visuais: piscar, animação de dano, flash de combo
+#
+# MATEMÁTICA APLICADA (comentada in-code):
+#   1. LÓGICA BOOLEANA       — controle de fluxo (acerto/erro/fim)
+#   2. TEORIA DOS CONJUNTOS  — anti-repetição de perguntas via set()
+#   3. FUNÇÕES MATEMÁTICAS   — pontuação (SistemaPontuacao)
+#   4. ANÁLISE COMBINATÓRIA  — geração de questões (GeradorMatematico)
+# =============================================================================
+
 import customtkinter as ctk
 import random
 from controllers.pontuacao import SistemaPontuacao
 from controllers.geradores import GeradorMatematico
-from controllers.database import BancoDeDados
+from controllers.database  import BancoDeDados
+from controllers.conquistas import GerenciadorConquistas
+from screens.tema import *
 
-# Paleta de Cores Premium (Dark Theme)
-COR_FUNDO = "#0B0C10" 
-COR_ROXO = "#8A2BE2"
-COR_VERDE = "#38B000"
-COR_VERMELHO = "#D90429"
-COR_AMARELO = "#FFBE0B"
-COR_AZUL = "#3A86FF"
-COR_BRANCO = "#F8F9FA"
 
-class BotaoAcao(ctk.CTkButton):
-    """Botão com animação de levitação para a tela de jogo"""
-    def __init__(self, master, cor_base, cor_hover, **kwargs):
-        super().__init__(master, fg_color=cor_base, hover_color=cor_hover, **kwargs)
-        self.bind("<Enter>", self.on_enter)
-        self.bind("<Leave>", self.on_leave)
+def clarear(cor, fator=0.1):
+    """
+    Clareia (fator>0) ou escurece (fator<0) uma cor hex #RRGGBB.
+    Usado para gerar a cor de hover do botão a partir da cor do modo.
+    """
+    cor = cor.lstrip("#")
+    r, g, b = int(cor[0:2], 16), int(cor[2:4], 16), int(cor[4:6], 16)
+    if fator >= 0:
+        r = r + (255 - r) * fator
+        g = g + (255 - g) * fator
+        b = b + (255 - b) * fator
+    else:
+        f = 1 + fator
+        r, g, b = r * f, g * f, b * f
+    clamp = lambda v: max(0, min(255, int(v)))
+    return f"#{clamp(r):02x}{clamp(g):02x}{clamp(b):02x}"
 
-    def on_enter(self, event):
-        self.configure(cursor="hand2")
-        self.pack_configure(pady=(15, 25))
 
-    def on_leave(self, event):
-        self.pack_configure(pady=20)
+# ─── Bestiário do Modo Clássico ─────────────────────────────────────────────
+# Cada inimigo tem NOME e SPRITE próprios, dando identidade visual única.
+# A dificuldade define o conjunto de inimigos possíveis (atmosfera crescente).
+INIMIGOS = {
+    "Fácil": [
+        {"nome": "Goblin Calculista",  "sprite": "👺"},
+        {"nome": "Slime Somador",      "sprite": "🟢"},
+        {"nome": "Kobold Subtrator",   "sprite": "🦎"},
+        {"nome": "Rato Contador",      "sprite": "🐀"},
+        {"nome": "Fada Numérica",      "sprite": "🧚"},
+    ],
+    "Médio": [
+        {"nome": "Ogro Multiplicador", "sprite": "👹"},
+        {"nome": "Troll Divisório",    "sprite": "🧌"},
+        {"nome": "Esqueleto Algébrico","sprite": "💀"},
+        {"nome": "Vampiro das Frações","sprite": "🧛"},
+        {"nome": "Golem de Cálculo",   "sprite": "🗿"},
+    ],
+    "Difícil": [
+        {"nome": "Dragão das Frações", "sprite": "🐲"},
+        {"nome": "Lich da Equação",    "sprite": "☠️"},
+        {"nome": "Titã Combinatório",  "sprite": "🗿"},
+        {"nome": "Serpe Polinomial",   "sprite": "🐍"},
+        {"nome": "Mago do Caos",       "sprite": "🧙"},
+    ],
+    "Extremo": [
+        {"nome": "Caos Matemático",    "sprite": "🌌"},
+        {"nome": "Void Infinito",      "sprite": "🕳️"},
+        {"nome": "Deus dos Números",   "sprite": "👁️"},
+        {"nome": "Devorador de Axiomas","sprite": "👾"},
+        {"nome": "Leviatã do Cálculo", "sprite": "🐉"},
+    ],
+}
+
+
+class BarraVida(ctk.CTkFrame):
+    """
+    Barra de HP estilo RPG com cor dinâmica.
+    Verde → Amarela → Vermelha conforme HP diminui.
+    """
+
+    def __init__(self, master, largura: int = 280, **kw):
+        super().__init__(master, fg_color="transparent", **kw)
+        self._max = 100
+        self._atual = 100
+
+        topo = ctk.CTkFrame(self, fg_color="transparent")
+        topo.pack(fill="x")
+        self._lbl_titulo = ctk.CTkLabel(topo, text="HP", font=F_TINY, text_color=TEXTO2)
+        self._lbl_titulo.pack(side="left")
+        self._lbl_val = ctk.CTkLabel(topo, text="100 / 100", font=F_TINY, text_color=TEXTO2)
+        self._lbl_val.pack(side="right")
+
+        self._trilho = ctk.CTkFrame(self, fg_color=BG_CARD2,
+                                    corner_radius=6, width=largura, height=14)
+        self._trilho.pack(fill="x", pady=(3, 0))
+        self._trilho.pack_propagate(False)
+
+        self._fill = ctk.CTkFrame(self._trilho, fg_color=VERDE, corner_radius=6)
+        self._fill.place(x=0, y=0, relheight=1.0, relwidth=1.0)
+
+    def _cor(self) -> str:
+        r = self._atual / self._max if self._max > 0 else 0
+        if r > 0.5: return VERDE
+        if r > 0.25: return AMARELO
+        return VERMELHO
+
+    def set(self, atual: int, maximo: int = None):
+        if maximo is not None:
+            self._max = maximo
+        self._atual = max(0, min(atual, self._max))
+        ratio = self._atual / self._max if self._max > 0 else 0
+        self._fill.configure(fg_color=self._cor())
+        self._fill.place(x=0, y=0, relheight=1.0, relwidth=ratio)
+        self._lbl_val.configure(text=f"{self._atual} / {self._max}")
+
+    def flash(self, cor: str = VERMELHO):
+        """Pisca a barra com uma cor e volta à cor normal."""
+        self._fill.configure(fg_color=cor)
+        self.after(300, lambda: self._fill.configure(fg_color=self._cor()))
+
+    def set_titulo(self, texto: str):
+        self._lbl_titulo.configure(text=texto)
+
 
 class TelaJogo(ctk.CTkFrame):
+    """HUD de batalha completo com estética RPG."""
+
+    # ─── Inicialização ────────────────────────────────────────────────────────
+
     def __init__(self, master, trocar_tela_callback):
-        super().__init__(master, fg_color=COR_FUNDO)
-        self.trocar_tela_callback = trocar_tela_callback
-        self.modo_atual = "Tabuada"
-        
-        self.sistema_pontos = SistemaPontuacao("Médio")
-        self.pergunta_atual = None
-        self.timer_id = None
-        self.limite_tempo = 30
-        self.tempo_restante = 30
-        self.tempo_total_partida = 0 
-        self.max_perguntas = 10
-        self.pergunta_atual_index = 0
-        self.acertos = 0 
-        
-        # Cria o fundo imersivo uma única vez
-        self.criar_fundo_decorativo()
-        
-        # Container principal que segura a partida (facilita na hora de apagar tudo)
-        self.container_jogo = ctk.CTkFrame(self, fg_color="transparent")
-        self.container_jogo.pack(expand=True, fill="both")
-        
-        self.construir_interface_jogo()
+        super().__init__(master, fg_color=BG_APP)
+        self.trocar_tela = trocar_tela_callback
 
-    def criar_fundo_decorativo(self):
-        """Fundo estilo Matrix, mas muito mais escuro para não distrair"""
-        simbolos = ["+", "-", "x", "÷", "=", "∑", "π", "√", "∞", "∫", "x²", "f(x)"]
-        cores_fundo = ["#0E0F14", "#101218"]
-        
-        for _ in range(40):
-            simbolo = random.choice(simbolos)
-            tamanho = random.randint(16, 60)
-            cor = random.choice(cores_fundo)
-            
-            pos_x = random.uniform(0.02, 0.98)
-            pos_y = random.uniform(0.02, 0.98)
-            
-            # Deixa o meio livre para a pergunta
-            if 0.2 < pos_x < 0.8 and 0.2 < pos_y < 0.8:
-                continue 
+        # Estado da partida
+        self.modo_atual       = "Tabuada"
+        self.dificuldade_atual = "Médio"
+        self.sistema_pontos   = SistemaPontuacao("Médio")
+        self.pergunta_atual   = None
+        self.timer_id         = None
+        self.limite_tempo     = 30
+        self.tempo_restante   = 30
+        self.tempo_total      = 0
+        self.max_perguntas    = 10
+        self.idx_pergunta     = 0
+        self.acertos          = 0
 
-            ctk.CTkLabel(self, text=simbolo, font=("Arial", tamanho, "bold"), text_color=cor).place(relx=pos_x, rely=pos_y, anchor="center")
+        # HP do jogador e do inimigo (para o HUD)
+        self._hp_heroi   = 100
+        self._hp_inimigo = 100
 
-    def construir_interface_jogo(self):
-        # Limpa apenas a interface do jogo (mantém o fundo)
-        for widget in self.container_jogo.winfo_children():
-            widget.destroy()
+        # ──────────────────────────────────────────────────────────────────────
+        # TEORIA DOS CONJUNTOS:
+        # 'perguntas_feitas' é inicializado aqui como conjunto vazio (∅).
+        # Ao longo da partida, cada pergunta exibida é inserida neste conjunto.
+        # A estrutura set() do Python garante unicidade (sem duplicatas),
+        # implementando o conceito matemático de Conjunto.
+        # ──────────────────────────────────────────────────────────────────────
+        self.perguntas_feitas = set()
 
-        # --- CABEÇALHO ---
-        self.frame_topo = ctk.CTkFrame(self.container_jogo, fg_color="transparent")
-        self.frame_topo.pack(fill="x", padx=60, pady=(30, 10))
-        
+        self._criar_fundo()
+        self._construir_hud()
+
+    def _criar_fundo(self):
+        """Fundo temático com símbolos matemáticos em ultra low opacity."""
+        for _ in range(45):
+            sym  = random.choice(SIMBOLOS_FUNDO)
+            size = random.randint(14, 55)
+            px   = random.uniform(0.01, 0.99)
+            py   = random.uniform(0.01, 0.99)
+            if 0.15 < px < 0.85 and 0.1 < py < 0.9:
+                continue
+            ctk.CTkLabel(self, text=sym,
+                         font=("Segoe UI Black", size, "bold"),
+                         text_color="#0C0F1A").place(relx=px, rely=py, anchor="center")
+
+    # ─── Construção do HUD ────────────────────────────────────────────────────
+
+    def _construir_hud(self):
+        """Monta toda a interface do HUD de batalha."""
+
+        # ── Topbar: Modo | Questão | Tempo | Sair ────────────────────────────
+        topbar = ctk.CTkFrame(self, fg_color=BG_CARD,
+                               corner_radius=0, height=52)
+        topbar.pack(fill="x")
+        topbar.pack_propagate(False)
+
+        inner_top = ctk.CTkFrame(topbar, fg_color="transparent")
+        inner_top.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.96)
+
         self.btn_sair = ctk.CTkButton(
-            self.frame_topo, text="✖ Abandonar", font=("Arial", 14, "bold"), 
-            fg_color="transparent", hover_color="#2A0808", text_color="#D90429", 
-            width=60, border_color="#D90429", border_width=1, corner_radius=8, command=self.voltar_selecao
+            inner_top, text="✖ Abandonar",
+            font=F_SMALL, text_color=VERMELHO,
+            fg_color="transparent", hover_color="#1A0808",
+            border_color=VERMELHO, border_width=1,
+            width=110, height=30, corner_radius=CORNER,
+            command=self._voltar
         )
-        self.btn_sair.pack(side="left")
-        
-        # Bloco de Informação Centralizado
-        frame_status = ctk.CTkFrame(self.frame_topo, fg_color="#12131C", corner_radius=10)
-        frame_status.pack(side="left", padx=30, expand=True)
-        
-        self.label_info = ctk.CTkLabel(frame_status, text="Questão 0 de 10", font=("Arial", 14, "bold"), text_color="#A0A0A0")
-        self.label_info.pack(side="left", padx=20, pady=5)
-        
-        self.label_tempo = ctk.CTkLabel(self.frame_topo, text="⏱ 30s", font=("Arial", 22, "bold"), text_color=COR_BRANCO)
-        self.label_tempo.pack(side="right")
-        
-        # --- BARRA DE PROGRESSO ---
-        self.barra_progresso = ctk.CTkProgressBar(self.container_jogo, width=800, height=8, fg_color="#1A1C29", progress_color=COR_ROXO)
-        self.barra_progresso.pack(padx=60, pady=(0, 20))
-        self.barra_progresso.set(0)
-        
-        # --- CARD PRINCIPAL (A Pergunta) ---
-        self.frame_central = ctk.CTkFrame(self.container_jogo, fg_color="#12131C", border_color="#1A1C29", border_width=2, corner_radius=25, width=700, height=400)
-        self.frame_central.pack(pady=10)
-        self.frame_central.pack_propagate(False) # Mantém o tamanho do card fixo
-        
-        # Título do Modo com Linha Neon
-       # Truque do Python para criar espaçamento entre as letras
-        texto_espacado = " ".join(self.modo_atual.upper())
-        self.label_titulo_modo = ctk.CTkLabel(self.frame_central, text=texto_espacado, font=("Arial", 18, "bold"), text_color="#A0A0A0")
-        self.label_titulo_modo.pack(pady=(30, 5))
-        ctk.CTkFrame(self.frame_central, fg_color=COR_ROXO, width=50, height=3, corner_radius=5).pack()
-        
-        self.label_pergunta = ctk.CTkLabel(self.frame_central, text="", font=("Arial", 80, "bold"), text_color=COR_BRANCO)
-        self.label_pergunta.pack(expand=True)
-        
-        self.entrada_resposta = ctk.CTkEntry(
-            self.frame_central, font=("Arial", 32, "bold"), width=350, height=65, 
-            justify="center", placeholder_text="Resposta...", text_color=COR_AMARELO,
-            fg_color="#0B0C10", border_color="#2A2D3E", border_width=2, corner_radius=15
+        self.btn_sair.pack(side="left", padx=8)
+
+        self.lbl_modo = ctk.CTkLabel(inner_top, text="MODO",
+                                      font=F_H3, text_color=TEXTO)
+        self.lbl_modo.pack(side="left", padx=16)
+
+        self.lbl_dif = ctk.CTkLabel(inner_top, text="● Médio",
+                                     font=F_SMALL, text_color=COR_MEDIO)
+        self.lbl_dif.pack(side="left", padx=4)
+
+        self.lbl_questao = ctk.CTkLabel(inner_top, text="0 / 10",
+                                         font=F_H3, text_color=TEXTO2)
+        self.lbl_questao.pack(side="left", padx=20)
+
+        self.lbl_tempo = ctk.CTkLabel(inner_top, text="⏱ 30",
+                                       font=F_TIMER, text_color=CIANO)
+        self.lbl_tempo.pack(side="right", padx=16)
+
+        self.lbl_pontos_top = ctk.CTkLabel(inner_top, text="⭐ 0",
+                                            font=F_H2, text_color=AMARELO)
+        self.lbl_pontos_top.pack(side="right", padx=16)
+
+        # ── Barra de progresso da partida ─────────────────────────────────────
+        self.barra_prog = ctk.CTkProgressBar(
+            self, height=5, fg_color=BG_CARD2, progress_color=ROXO
         )
-        self.entrada_resposta.pack(pady=10)
-        self.entrada_resposta.bind("<Return>", lambda event: self.verificar_resposta())
-        
-        self.btn_responder = BotaoAcao(
-            self.frame_central, cor_base=COR_ROXO, cor_hover="#A349FF",
-            text="⚡ CONFIRMAR", text_color=COR_BRANCO, font=("Arial", 18, "bold"), 
-            width=350, height=55, corner_radius=15, command=self.verificar_resposta
+        self.barra_prog.pack(fill="x")
+        self.barra_prog.set(0)
+
+        # ── Área central (3 colunas) ──────────────────────────────────────────
+        area = ctk.CTkFrame(self, fg_color="transparent")
+        area.pack(fill="both", expand=True, padx=16, pady=10)
+
+        # Coluna esquerda: painel do herói
+        col_esq = ctk.CTkFrame(area, fg_color=BG_CARD,
+                                corner_radius=CORNER_L,
+                                border_width=1, border_color=BORDA,
+                                width=200)
+        col_esq.pack(side="left", fill="y", padx=(0, 10))
+        col_esq.pack_propagate(False)
+        self._construir_painel_heroi(col_esq)
+
+        # Coluna central: pergunta e resposta
+        col_mid = ctk.CTkFrame(area, fg_color="transparent")
+        col_mid.pack(side="left", fill="both", expand=True, padx=10)
+        self._construir_painel_pergunta(col_mid)
+
+        # Coluna direita: painel do inimigo
+        col_dir = ctk.CTkFrame(area, fg_color=BG_CARD,
+                                corner_radius=CORNER_L,
+                                border_width=1, border_color=BORDA,
+                                width=200)
+        col_dir.pack(side="right", fill="y", padx=(10, 0))
+        col_dir.pack_propagate(False)
+        self._construir_painel_inimigo(col_dir)
+
+    def _construir_painel_heroi(self, pai):
+        """Painel esquerdo: avatar do herói, HP e stats."""
+        ctk.CTkLabel(pai, text="HERÓI",
+                     font=F_TINY, text_color=TEXTO2).pack(pady=(16, 4))
+
+        self.lbl_sprite_heroi = ctk.CTkLabel(pai, text="🧙",
+                                              font=("Segoe UI", 48))
+        self.lbl_sprite_heroi.pack()
+
+        self.lbl_nome_heroi = ctk.CTkLabel(pai, text="...",
+                                            font=F_H3, text_color=AZUL,
+                                            wraplength=170)
+        self.lbl_nome_heroi.pack(pady=(4, 10))
+
+        self.barra_hp_heroi = BarraVida(pai, largura=160)
+        self.barra_hp_heroi.set_titulo("❤️ HP do Herói")
+        self.barra_hp_heroi.pack(padx=16, pady=(0, 16))
+
+        sep = ctk.CTkFrame(pai, fg_color=BORDA, height=1)
+        sep.pack(fill="x", padx=12, pady=8)
+
+        ctk.CTkLabel(pai, text="STATUS DA PARTIDA",
+                     font=F_TINY, text_color=TEXTO3).pack()
+
+        self.lbl_acertos = ctk.CTkLabel(pai, text="✅  Acertos: 0",
+                                         font=F_SMALL, text_color=VERDE)
+        self.lbl_acertos.pack(pady=4)
+
+        self.lbl_erros = ctk.CTkLabel(pai, text="❌  Erros: 0",
+                                       font=F_SMALL, text_color=VERMELHO)
+        self.lbl_erros.pack(pady=4)
+
+        self.lbl_flash_heroi = ctk.CTkLabel(pai, text="",
+                                             font=("Segoe UI Black", 20, "bold"),
+                                             text_color=VERDE)
+        self.lbl_flash_heroi.pack(pady=8)
+
+    def _construir_painel_inimigo(self, pai):
+        """Painel direito: sprite do inimigo, HP e nome."""
+        ctk.CTkLabel(pai, text="INIMIGO",
+                     font=F_TINY, text_color=TEXTO2).pack(pady=(16, 4))
+
+        self.lbl_sprite_ini = ctk.CTkLabel(pai, text="👹",
+                                            font=("Segoe UI", 48))
+        self.lbl_sprite_ini.pack()
+
+        self.lbl_nome_ini = ctk.CTkLabel(pai, text="...",
+                                          font=F_H3, text_color=VERMELHO,
+                                          wraplength=170)
+        self.lbl_nome_ini.pack(pady=(4, 10))
+
+        self.barra_hp_ini = BarraVida(pai, largura=160)
+        self.barra_hp_ini.set_titulo("💀 HP do Inimigo")
+        self.barra_hp_ini.pack(padx=16, pady=(0, 16))
+
+        sep = ctk.CTkFrame(pai, fg_color=BORDA, height=1)
+        sep.pack(fill="x", padx=12, pady=8)
+
+        ctk.CTkLabel(pai, text="DANO POR ACERTO",
+                     font=F_TINY, text_color=TEXTO3).pack()
+
+        self.lbl_dano_ini = ctk.CTkLabel(pai, text="⚔️  10 HP",
+                                          font=F_SMALL, text_color=AMARELO)
+        self.lbl_dano_ini.pack(pady=4)
+
+        self.lbl_flash_ini = ctk.CTkLabel(pai, text="",
+                                           font=("Segoe UI Black", 20, "bold"),
+                                           text_color=VERMELHO)
+        self.lbl_flash_ini.pack(pady=8)
+
+    def _construir_painel_pergunta(self, pai):
+        """Coluna central: barra de tempo, pergunta, input e HUD inferior."""
+
+        # Barra de tempo
+        self.barra_tempo = ctk.CTkProgressBar(
+            pai, height=8, fg_color=BG_CARD2, progress_color=CIANO
         )
-        self.btn_responder.pack(pady=20)
+        self.barra_tempo.pack(fill="x", pady=(0, 8))
+        self.barra_tempo.set(1.0)
 
-        # --- RODAPÉ DE PONTUAÇÃO ---
-        self.frame_rodape = ctk.CTkFrame(self.container_jogo, fg_color="transparent")
-        self.frame_rodape.pack(fill="x", padx=60, pady=(20, 0))
-        
-        self.label_feedback = ctk.CTkLabel(self.frame_rodape, text="", font=("Arial", 22, "bold"))
-        self.label_feedback.pack(side="top", pady=(0, 10))
+        # Card da pergunta
+        card_q = ctk.CTkFrame(pai, fg_color=GLASS_BG,
+                               corner_radius=CORNER_L,
+                               border_width=2, border_color=ROXO)
+        card_q.pack(fill="both", expand=True)
+        self._card_pergunta = card_q
 
-        # Caixas de Combo e Pontos estilo HUD de jogo
-        self.caixa_combo = ctk.CTkFrame(self.frame_rodape, fg_color="#12131C", corner_radius=8)
-        self.caixa_combo.pack(side="left", padx=(0, 10))
-        self.label_combo = ctk.CTkLabel(self.caixa_combo, text="🔥 Combo: 0", font=("Arial", 16, "bold"), text_color="#A0A0A0")
-        self.label_combo.pack(padx=15, pady=8)
-        
-        self.caixa_pontos = ctk.CTkFrame(self.frame_rodape, fg_color="#12131C", corner_radius=8)
-        self.caixa_pontos.pack(side="left")
-        self.label_pontos = ctk.CTkLabel(self.caixa_pontos, text="⭐ Pontos: 0", font=("Arial", 16, "bold"), text_color=COR_AMARELO)
-        self.label_pontos.pack(padx=15, pady=8)
+        # Faixa de cor no topo (igual ao Modo RPG)
+        self.faixa_modo = ctk.CTkFrame(card_q, fg_color=ROXO, height=4, corner_radius=2)
+        self.faixa_modo.pack(fill="x")
 
-    def configurar_modo(self, modo_selecionado, dificuldade_selecionada="Médio"):
-        self.modo_atual = modo_selecionado
-        self.dificuldade_atual = dificuldade_selecionada 
-        
-        self.sistema_pontos = SistemaPontuacao(dificuldade_selecionada) 
-        
-        self.pergunta_atual_index = 0
-        self.acertos = 0
-        self.tempo_total_partida = 0
-        
-        # MEMÓRIA DA PARTIDA: Guarda as equações já exibidas para evitar repetições
-        self.perguntas_feitas = set() 
-        
-        self.construir_interface_jogo()
-        
-        texto_titulo = f"{self.modo_atual.upper()} | {self.dificuldade_atual.upper()}"
-        self.label_titulo_modo.configure(text=" ".join(texto_titulo))
-        
-        self.atualizar_textos_rodape()
-        self.proxima_pergunta()
+        # Cabeçalho do card
+        cab_q = ctk.CTkFrame(card_q, fg_color="transparent")
+        cab_q.pack(fill="x", padx=20, pady=(14, 0))
 
-    def atualizar_tempo(self):
-        self.tempo_restante -= 1
-        self.tempo_total_partida += 1 
-        
-        cor = COR_VERMELHO if self.tempo_restante <= 5 else COR_BRANCO
-        self.label_tempo.configure(text=f"⏱ {self.tempo_restante}s", text_color=cor)
-        
-        if self.tempo_restante <= 0:
-            self.tempo_esgotado()
-        else:
-            self.timer_id = self.after(1000, self.atualizar_tempo)
+        self.lbl_titulo_modo_card = ctk.CTkLabel(
+            cab_q, text="M O D O",
+            font=("Segoe UI Black", 13), text_color=TEXTO2
+        )
+        self.lbl_titulo_modo_card.pack(side="left")
 
-    def piscar_caixa_texto(self, cor):
-        self.entrada_resposta.configure(border_color=cor)
-        self.after(800, lambda: self.entrada_resposta.configure(border_color="#2A2D3E"))
+        self.lbl_combo_card = ctk.CTkLabel(
+            cab_q, text="",
+            font=("Segoe UI Black", 13), text_color=LARANJA
+        )
+        self.lbl_combo_card.pack(side="right")
 
-    def tempo_esgotado(self):
-        self.entrada_resposta.configure(state="disabled")
-        self.piscar_caixa_texto(COR_VERMELHO)
-        self.sistema_pontos.registrar_erro()
-        self.atualizar_textos_rodape()
-        
-        resposta_correta = self.pergunta_atual["resposta"]
-        self.label_feedback.configure(text=f"Tempo esgotado! Era {resposta_correta}.", text_color=COR_VERMELHO)
-        self.after(1500, self.proxima_pergunta)
+        # Linha neon
+        self.linha_modo = ctk.CTkFrame(card_q, fg_color=ROXO,
+                                        height=2, corner_radius=2)
+        self.linha_modo.pack(fill="x", padx=20)
 
-    def proxima_pergunta(self):
-        # =====================================================================
-        # APLICAÇÃO MATEMÁTICA 1: LÓGICA BOOLEANA (Controle de Fluxo)
-        # =====================================================================
-        # Aqui aplicamos a lógica booleana (Verdadeiro/Falso) para verificar o estado da partida.
-        # Se a condição (pergunta_atual_index >= max_perguntas) for VERDADEIRA (True),
-        # o fluxo é interrompido e a partida finaliza.
+        # Container central que agrupa pergunta + input + botão, centralizado
+        # verticalmente (evita o vão grande entre a pergunta e a resposta).
+        miolo = ctk.CTkFrame(card_q, fg_color="transparent")
+        miolo.pack(expand=True)
+
+        # Pergunta (fonte gigante)
+        self.lbl_pergunta = ctk.CTkLabel(
+            miolo, text="?",
+            font=("Segoe UI Black", 66, "bold"), text_color=TEXTO,
+            wraplength=560
+        )
+        self.lbl_pergunta.pack(pady=(0, 28))
+
+        # Campo de resposta
+        self.entrada = ctk.CTkEntry(
+            miolo, font=("Segoe UI Black", 32, "bold"),
+            width=360, height=66, justify="center",
+            placeholder_text="Resposta...",
+            text_color=AMARELO,
+            fg_color=BG_INPUT,
+            border_color=BORDA, border_width=2,
+            corner_radius=CORNER
+        )
+        self.entrada.pack(pady=(0, 12))
+        self.entrada.bind("<Return>", lambda _: self._verificar())
+
+        # Botão confirmar
+        self.btn_confirmar = ctk.CTkButton(
+            miolo, text="⚡  ATACAR",
+            font=("Segoe UI Bold", 19, "bold"), text_color=TEXTO,
+            fg_color=ROXO, hover_color=ROXO_HOVER,
+            width=360, height=54, corner_radius=CORNER,
+            command=self._verificar
+        )
+        self.btn_confirmar.pack()
+
+        # Feedback
+        self.lbl_feedback = ctk.CTkLabel(
+            pai, text="", font=F_H2
+        )
+        self.lbl_feedback.pack(pady=(6, 0))
+
+    # ─── Configuração de Partida ──────────────────────────────────────────────
+
+    def configurar_modo(self, modo: str, dificuldade: str = "Médio"):
+        """
+        Chamado pela tela de seleção antes de navegar para cá.
+        Reinicia todos os contadores e inicia a primeira pergunta.
+        """
+        self.modo_atual        = modo
+        self.dificuldade_atual = dificuldade
+        self.sistema_pontos    = SistemaPontuacao(dificuldade)
+        self.idx_pergunta      = 0
+        self.acertos           = 0
+        self.tempo_total       = 0
+        self._hp_heroi         = 100
+        self._hp_inimigo       = 100
+
+        # ──────────────────────────────────────────────────────────────────────
+        # TEORIA DOS CONJUNTOS — Reinicialização:
+        # Cada nova partida começa com o conjunto vazio (∅).
+        # Isso garante que o histórico de perguntas da partida anterior
+        # não interfira na nova sessão.
+        # ──────────────────────────────────────────────────────────────────────
+        self.perguntas_feitas = set()
+
+        # Escolhe inimigo aleatório conforme dificuldade (nome + sprite próprios)
+        inimigo  = random.choice(INIMIGOS.get(dificuldade, INIMIGOS["Médio"]))
+        nome_ini = inimigo["nome"]
+        sprite   = inimigo["sprite"]
+
+        # Atualiza topbar
+        cor_dif = CORES_DIFIC.get(dificuldade, COR_MEDIO)
+        cor_modo = CORES_MODO.get(modo, ROXO)
+        self.lbl_modo.configure(text=f"⚔  {modo.upper()}")
+        self.lbl_dif.configure(text=f"● {dificuldade}", text_color=cor_dif)
+        self.linha_modo.configure(fg_color=cor_modo)
+
+        # Tema do card central segue a cor do modo (faixa, borda e botão)
+        self.faixa_modo.configure(fg_color=cor_modo)
+        self._card_pergunta.configure(border_color=cor_modo)
+        self.btn_confirmar.configure(fg_color=cor_modo,
+                                     hover_color=clarear(cor_modo, -0.15))
+
+        # Atualiza card
+        self.lbl_titulo_modo_card.configure(
+            text=" ".join(f"{modo.upper()} | {dificuldade.upper()}")
+        )
+
+        # Atualiza painel inimigo
+        self.lbl_sprite_ini.configure(text=sprite)
+        self.lbl_nome_ini.configure(text=nome_ini)
+        self.barra_hp_ini.set(100, 100)
+        self.lbl_flash_ini.configure(text="")
+
+        # Atualiza painel herói
+        nome = getattr(self.master, "usuario_logado_nome", None) or "Herói"
+        self.lbl_nome_heroi.configure(text=nome)
+        self.barra_hp_heroi.set(100, 100)
+        self.lbl_flash_heroi.configure(text="")
+
+        # Reinicia HUD
+        self.barra_prog.set(0)
+        self.lbl_pontos_top.configure(text="⭐ 0")
+        self.lbl_acertos.configure(text="✅  Acertos: 0")
+        self.lbl_erros.configure(text="❌  Erros: 0")
+        self.lbl_combo_card.configure(text="")
+        self.lbl_feedback.configure(text="")
+
+        self._proxima_pergunta()
+
+    # ─── Loop Principal ───────────────────────────────────────────────────────
+
+    def _proxima_pergunta(self):
+        """
+        Avança para a próxima pergunta ou finaliza a partida.
+
+        ──────────────────────────────────────────────────────────────────────
+        LÓGICA BOOLEANA — Controle de Fluxo:
+            P: "idx_pergunta >= max_perguntas"
+            Se P = True  → finaliza partida (fim de jogo)
+            Se P = False → continua o loop (próxima questão)
+
+        Essa é a proposição booleana central do gameplay loop.
+        ──────────────────────────────────────────────────────────────────────
+        """
         if self.timer_id:
             self.after_cancel(self.timer_id)
-            
-        if self.pergunta_atual_index >= self.max_perguntas:
-            self.finalizar_partida()
+
+        # LÓGICA BOOLEANA: verifica condição de parada
+        if self.idx_pergunta >= self.max_perguntas:
+            self._finalizar()
             return
-            
-        self.pergunta_atual_index += 1
-        self.label_info.configure(text=f"Questão {self.pergunta_atual_index} de {self.max_perguntas}")
-        self.barra_progresso.set(self.pergunta_atual_index / self.max_perguntas)
-            
-        # =====================================================================
-        # APLICAÇÃO MATEMÁTICA 2: TEORIA DOS CONJUNTOS E ANÁLISE COMBINATÓRIA
-        # =====================================================================
-        # Para evitar repetições (Análise Combinatória), utilizamos a Teoria dos Conjuntos.
-        # A variável 'self.perguntas_feitas' é um Conjunto (Set).
-        # Um conjunto matemático não admite elementos duplicados. O laço 'while' atua como
-        # um filtro: ele gera uma combinação aleatória e usa o operador de pertinência 'not in'
-        # para verificar se a equação pertence ao conjunto de questões já exibidas.
+
+        self.idx_pergunta += 1
+        self.lbl_questao.configure(text=f"{self.idx_pergunta} / {self.max_perguntas}")
+        self.barra_prog.set(self.idx_pergunta / self.max_perguntas)
+
+        # ──────────────────────────────────────────────────────────────────────
+        # TEORIA DOS CONJUNTOS + ANÁLISE COMBINATÓRIA:
+        #
+        # Objetivo: gerar uma pergunta que NÃO pertença ao conjunto de
+        # perguntas já exibidas nesta partida.
+        #
+        # Seja Ω o espaço amostral de todas as perguntas possíveis (geradas
+        # aleatoriamente pelo GeradorMatematico — Análise Combinatória).
+        # Seja F ⊆ Ω o conjunto das perguntas já feitas (Teoria dos Conjuntos).
+        #
+        # Buscamos p ∈ (Ω \ F) — pertencente ao complemento de F em Ω.
+        #
+        # Operação de pertinência: "p ∉ F" verifica se a nova pergunta
+        # já foi exibida. Complexidade O(1) no set do Python.
+        # ──────────────────────────────────────────────────────────────────────
         tentativas = 0
+        nova = None
         while tentativas < 20:
-            nova_pergunta = GeradorMatematico.gerar(self.modo_atual, self.dificuldade_atual)
-            
-            # Operação de Pertinência de Conjuntos (A ∉ B)
-            if nova_pergunta["pergunta"] not in self.perguntas_feitas:
-                self.pergunta_atual = nova_pergunta
-                self.perguntas_feitas.add(nova_pergunta["pergunta"]) # Adiciona o novo elemento ao Conjunto
+            candidata = GeradorMatematico.gerar(self.modo_atual, self.dificuldade_atual)
+
+            # Operação de pertinência: candidata ∉ F ?
+            if candidata["pergunta"] not in self.perguntas_feitas:
+                nova = candidata
+                # Adição ao conjunto: F ← F ∪ {candidata}
+                self.perguntas_feitas.add(candidata["pergunta"])
                 break
             tentativas += 1
-        else:
-            self.pergunta_atual = nova_pergunta
-        # =====================================================================
-        
-        # PROCESSO DE SAÍDA (Interface Gráfica)
-        self.label_pergunta.configure(text=self.pergunta_atual["pergunta"])
-        self.entrada_resposta.configure(state="normal", border_color="#2A2D3E")
-        self.entrada_resposta.delete(0, 'end') 
-        self.entrada_resposta.focus()
-        self.label_feedback.configure(text="")
-        
+
+        # Se esgotou tentativas, usa a última gerada (fallback)
+        if nova is None:
+            nova = candidata
+
+        self.pergunta_atual = nova
+
+        # Exibe a pergunta
+        self.lbl_pergunta.configure(text=nova["pergunta"])
+        self.entrada.configure(state="normal", border_color=BORDA)
+        self.entrada.delete(0, "end")
+        self.entrada.focus()
+        self.lbl_feedback.configure(text="")
+        self.lbl_combo_card.configure(text=self.sistema_pontos.get_nivel_combo())
+
+        # Reinicia o timer
         self.tempo_restante = self.limite_tempo
-        self.label_tempo.configure(text=f"⏱ {self.tempo_restante}s", text_color=COR_BRANCO)
-        self.timer_id = self.after(1000, self.atualizar_tempo)
+        self._atualizar_timer()
+        self.timer_id = self.after(1000, self._tick_tempo)
 
+    def _tick_tempo(self):
+        """Decrementa o timer e atualiza a barra visual."""
+        self.tempo_restante -= 1
+        self.tempo_total    += 1
+        self._atualizar_timer()
 
-    def verificar_resposta(self):
-        # =====================================================================
-        # APLICAÇÃO DE REQUISITO: ENTRADA E PROCESSAMENTO DE DADOS
-        # =====================================================================
-        if self.entrada_resposta.cget("state") == "disabled":
-            return
-            
-        if self.timer_id:
-            self.after_cancel(self.timer_id)
-            self.timer_id = None
-            
-        # ENTRADA: Captura a resposta do usuário no CustomTkinter
-        resposta_usuario = self.entrada_resposta.get().strip()
-        resposta_correta = self.pergunta_atual["resposta"]
-        self.entrada_resposta.configure(state="disabled")
-        
-        tempo_gasto = self.limite_tempo - self.tempo_restante
-        
-        # =====================================================================
-        # APLICAÇÃO MATEMÁTICA 3: ÁLGEBRA BOOLEANA E FUNÇÕES MATEMÁTICAS
-        # =====================================================================
-        # Avaliação de proposição lógica: (resposta_usuario == resposta_correta)
-        # Se a proposição for verdadeira, disparamos as Funções Matemáticas do 
-        # Sistema de Pontuação para processar a nota baseada no tempo e multiplicadores.
-        if resposta_usuario == resposta_correta:
-            self.acertos += 1
-            self.piscar_caixa_texto(COR_VERDE) 
-            
-            # Chamada de Função Matemática Externa (Processamento de Pontos e Multiplicadores)
-            pontos_ganhos, mult = self.sistema_pontos.registrar_acerto(tempo_gasto)
-            
-            # SAÍDA: Feedback visual Positivo
-            texto_extra = "🔥" if mult > 1.0 else "✨"
-            self.label_feedback.configure(text=f"CORRETO! {texto_extra} +{pontos_ganhos} pts", text_color=COR_VERDE)
+        if self.tempo_restante <= 0:
+            self._tempo_esgotado()
         else:
-            # Se a proposição for falsa, o combo é zerado
-            self.sistema_pontos.registrar_erro()
-            self.piscar_caixa_texto(COR_VERMELHO) 
-            
-            # SAÍDA: Feedback visual Negativo
-            self.label_feedback.configure(text=f"INCORRETO! O certo era {resposta_correta}.", text_color=COR_VERMELHO)
+            self.timer_id = self.after(1000, self._tick_tempo)
 
-        self.atualizar_textos_rodape()
-        self.after(1500, self.proxima_pergunta)
+    def _atualizar_timer(self):
+        """Atualiza label e cor do timer conforme urgência."""
+        # LÓGICA BOOLEANA: cor muda conforme condição de urgência
+        if self.tempo_restante <= 5:
+            cor = VERMELHO
+        elif self.tempo_restante <= 10:
+            cor = AMARELO
+        else:
+            cor = CIANO
 
-    def atualizar_textos_rodape(self):
-        """Atualiza os textos do HUD inferior."""
+        self.lbl_tempo.configure(text=f"⏱ {self.tempo_restante}", text_color=cor)
+        self.barra_tempo.configure(progress_color=cor)
+        self.barra_tempo.set(self.tempo_restante / self.limite_tempo)
 
-        self.label_combo.configure(
-            text=f"🔥 Combo: {self.sistema_pontos.combo_atual}"
-        )
+    # ─── Verificação de Resposta ──────────────────────────────────────────────
 
-        self.label_pontos.configure(
-            text=f"⭐ Pontos: {self.sistema_pontos.pontos_totais}"
-        )
-    
-    def finalizar_partida(self):
-        # 1. Para os relógios do jogo
+    def _verificar(self):
+        """
+        Processa a resposta do jogador.
+
+        ──────────────────────────────────────────────────────────────────────
+        ÁLGEBRA BOOLEANA — Avaliação da Proposição de Acerto:
+            P: "resposta_usuario == resposta_correta"
+
+            P = True  (acerto):
+                → chama SistemaPontuacao.registrar_acerto()   [Funções Mat.]
+                → causa dano no inimigo (barra HP inimigo −10)
+                → exibe feedback verde
+
+            P = False (erro):
+                → chama SistemaPontuacao.registrar_erro()
+                → causa dano no herói (barra HP herói −10)
+                → exibe feedback vermelho
+
+        Essa avaliação booleana é o núcleo da lógica de jogo.
+        ──────────────────────────────────────────────────────────────────────
+        """
+        # Guarda de reentrada: ignora clique se entrada desabilitada
+        if self.entrada.cget("state") == "disabled":
+            return
+
         if self.timer_id:
             self.after_cancel(self.timer_id)
             self.timer_id = None
-            
-        # 2. Empacota os dados para a tela visual
-        estatisticas = {
-            "modo": self.modo_atual,
-            "acertos": self.acertos,
-            "max_perguntas": self.max_perguntas,
-            "tempo": self.tempo_total_partida,
-            "pontos": self.sistema_pontos.pontos_totais
-        }
-        
-        # 3. MÁGICA ACONTECENDO: Salva a partida no Banco de Dados!
-        usuario_id = self.master.usuario_logado_id
-        if usuario_id is not None:
+
+        resposta_usuario  = self.entrada.get().strip()
+        resposta_correta  = self.pergunta_atual["resposta"]
+        tempo_gasto       = self.limite_tempo - self.tempo_restante
+
+        self.entrada.configure(state="disabled")
+
+        # ── AVALIAÇÃO BOOLEANA CENTRAL ─────────────────────────────────────
+        if resposta_usuario == resposta_correta:
+            # ── P = True: ACERTO ──────────────────────────────────────────
+            self.acertos += 1
+
+            # FUNÇÕES MATEMÁTICAS: calcula pontos via função composta
+            pts, mult = self.sistema_pontos.registrar_acerto(tempo_gasto)
+
+            # Efeito visual: borda verde
+            self.entrada.configure(border_color=VERDE)
+
+            # Dano no inimigo: −10 HP por acerto
+            self._hp_inimigo = max(0, self._hp_inimigo - 10)
+            self.barra_hp_ini.set(self._hp_inimigo, 100)
+            self.barra_hp_ini.flash(VERMELHO)
+            self._flash_label(self.lbl_flash_ini, f"−10 💥", VERMELHO)
+
+            # Cura leve do herói se combo alto
+            if self.sistema_pontos.combo_atual >= 5:
+                self._hp_heroi = min(100, self._hp_heroi + 5)
+                self.barra_hp_heroi.set(self._hp_heroi, 100)
+                self.barra_hp_heroi.flash(VERDE)
+                self._flash_label(self.lbl_flash_heroi, "+5 ❤️", VERDE)
+
+            # Feedback de pontuação
+            extra = "🔥" if mult > 1.0 else "✨"
+            self.lbl_feedback.configure(
+                text=f"CORRETO! {extra} +{pts} pts", text_color=VERDE
+            )
+            self.lbl_pontos_top.configure(
+                text=f"⭐ {self.sistema_pontos.pontos_totais:,}"
+            )
+
+        else:
+            # ── P = False: ERRO ───────────────────────────────────────────
+            self.sistema_pontos.registrar_erro()
+
+            # Efeito visual: borda vermelha
+            self.entrada.configure(border_color=VERMELHO)
+
+            # Dano no herói: −10 HP por erro
+            self._hp_heroi = max(0, self._hp_heroi - 10)
+            self.barra_hp_heroi.set(self._hp_heroi, 100)
+            self.barra_hp_heroi.flash(VERMELHO)
+            self._flash_label(self.lbl_flash_heroi, "−10 💔", VERMELHO)
+
+            self.lbl_feedback.configure(
+                text=f"INCORRETO! ✗  Resposta: {resposta_correta}",
+                text_color=VERMELHO
+            )
+
+        # Atualiza stats laterais
+        erros = self.idx_pergunta - self.acertos
+        self.lbl_acertos.configure(text=f"✅  Acertos: {self.acertos}")
+        self.lbl_erros.configure(text=f"❌  Erros: {erros}")
+        self.lbl_combo_card.configure(
+            text=self.sistema_pontos.get_nivel_combo()
+        )
+
+        # Aguarda 1.5s e avança
+        self.after(1500, self._proxima_pergunta)
+
+    def _tempo_esgotado(self):
+        """Tempo da questão esgotou: penaliza e avança."""
+        self.entrada.configure(state="disabled", border_color=VERMELHO)
+        self.sistema_pontos.registrar_erro()
+
+        # Dano no herói por tempo esgotado
+        self._hp_heroi = max(0, self._hp_heroi - 5)
+        self.barra_hp_heroi.set(self._hp_heroi, 100)
+        self.barra_hp_heroi.flash(VERMELHO)
+        self._flash_label(self.lbl_flash_heroi, "−5 ⏰", VERMELHO)
+
+        resp = self.pergunta_atual["resposta"]
+        self.lbl_feedback.configure(
+            text=f"⏰ Tempo! Era {resp}.", text_color=AMARELO
+        )
+        self.after(1500, self._proxima_pergunta)
+
+    # ─── Finalização ──────────────────────────────────────────────────────────
+
+    def _finalizar(self):
+        """Salva a partida no banco e navega para a tela de resultados."""
+        if self.timer_id:
+            self.after_cancel(self.timer_id)
+            self.timer_id = None
+
+        uid = getattr(self.master, "usuario_logado_id", None)
+        if uid:
             BancoDeDados.salvar_partida(
-                usuario_id=usuario_id,
+                usuario_id=uid,
                 modo=self.modo_atual,
                 pontos=self.sistema_pontos.pontos_totais,
                 acertos=self.acertos,
-                tempo=self.tempo_total_partida
+                tempo=self.tempo_total
             )
-        
-        # 4. Envia os dados para a Tela de Resultados e faz a troca
-        tela_resultados = self.master.telas["resultados"]
-        
-        # Calcula a quantidade de erros
-        total_erros = self.pergunta_atual_index - self.acertos
+            # Verifica conquistas gerais e de nível após salvar
+            stats = BancoDeDados.obter_estatisticas_conquistas(uid)
+            GerenciadorConquistas.verificar_pos_partida(uid, stats)
+            dados = BancoDeDados.obter_dados_perfil(uid)
+            if dados:
+                GerenciadorConquistas.verificar_nivel(uid, dados[3])
 
-        # Chama a tela de resultados nova usando os nomes exatos do seu Sistema de Pontuação!
-        tela_resultados.mostrar_resultados(
-            pontos=self.sistema_pontos.pontos_totais, # <--- O NOME EXATO ERA ESSE!
+        erros = self.idx_pergunta - self.acertos
+        self.master.telas["resultados"].mostrar_resultados(
+            pontos=self.sistema_pontos.pontos_totais,
             acertos=self.acertos,
-            erros=total_erros,
-            tempo=self.tempo_total_partida,
-            max_combo=getattr(self.sistema_pontos, 'combo_maximo', self.sistema_pontos.combo_atual) # Segurança contra crash
+            erros=erros,
+            tempo=self.tempo_total,
+            max_combo=self.sistema_pontos.combo_maximo
         )
-        self.trocar_tela_callback("resultados")
+        self.trocar_tela("resultados")
 
-    def criar_card_stat(self, master, titulo, valor, cor, coluna):
-        card = ctk.CTkFrame(master, fg_color="#1A1F2E", corner_radius=15, width=120, height=110)
-        card.grid(row=0, column=coluna, padx=10)
-        card.pack_propagate(False) 
-        
-        ctk.CTkLabel(card, text=valor, font=("Arial", 26, "bold"), text_color=cor).pack(pady=(25, 5))
-        ctk.CTkLabel(card, text=titulo, font=("Arial", 13), text_color="#A0A0A0").pack()
+    # ─── Helpers visuais ──────────────────────────────────────────────────────
 
-    def voltar_selecao(self):
+    def _flash_label(self, lbl, texto: str, cor: str):
+        """Exibe um texto temporário num label e some após 900ms."""
+        lbl.configure(text=texto, text_color=cor)
+        self.after(900, lambda: lbl.configure(text=""))
+
+    def _voltar(self):
         if self.timer_id:
             self.after_cancel(self.timer_id)
-        self.trocar_tela_callback("selecao_modo")
+        self.trocar_tela("selecao_modo")

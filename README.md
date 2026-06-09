@@ -524,7 +524,7 @@ Para detalhes, veja o arquivo [LICENSE](LICENSE) ou o [resumo da licença](https
 
 <div align="center">
 
-*Projeto Integrador desenvolvido por **Matheus** para a disciplina de **Matemática Computacional Aplicada** (2026/1).*
+*Projeto Integrador desenvolvido para a disciplina de **Matemática Computacional Aplicada** (2026/1).*
 
 **⭐ Resolva. Vença. Evolua. ⭐**
 
